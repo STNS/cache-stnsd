@@ -184,6 +184,10 @@ func runServer() error {
 
 			return nil
 		})
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 
 	server := http.Server{
