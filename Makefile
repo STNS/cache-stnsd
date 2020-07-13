@@ -61,12 +61,13 @@ test:
 .PHONY: run
 run:
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Runing$(RESET)"
-	$(GO) run main.go -c $(TESTCONFIG) server -s /tmp/stnsd.sock
+	$(GO) run main.go -c $(TESTCONFIG) -p /tmp/stnsd.pid server -s /tmp/stnsd.sock
 
 .PHONY: integration
 integration: ## Run integration test after Server wakeup
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Integration HTTP Testing$(RESET)"
-	./misc/server start -http
+	./misc/server stop || true
+	./misc/server start
 	$(GO) test $(VERBOSE) -integration $(TEST) $(TEST_OPTIONS)
 	./misc/server stop || true
 

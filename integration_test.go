@@ -10,6 +10,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/k0kubun/pp"
 	_ "github.com/lib/pq"
 )
 
@@ -90,5 +91,19 @@ func TestHTTPGet(t *testing.T) {
 	if res.Header.Get("STNSD-CACHE") != "1" {
 		t.Errorf("HTTP Get returned wrong cache flg: got %v expected %v",
 			res.Header.Get("STNSD-CACHE"), 1)
+	}
+
+	req, _ = http.NewRequest("GET", testEndpoint+"/response-headers?user-highest-id=1&user-lowest-id=2&group-highest-id=3&group-lowest-id=4", nil)
+	res, err = client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.Header.Get("User-Highest-Id") != "1" ||
+		res.Header.Get("User-Lowest-Id") != "2" ||
+		res.Header.Get("Group-Highest-Id") != "3" ||
+		res.Header.Get("Group-Lowest-Id") != "4" {
+		pp.Println(res.Header)
+		t.Error("HTTP Get returned wrong header")
 	}
 }

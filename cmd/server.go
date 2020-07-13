@@ -26,9 +26,11 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/facebookgo/pidfile"
+	"github.com/thoas/go-funk"
 
 	"github.com/Songmu/retry"
 	"github.com/pyama86/go-cache"
@@ -51,11 +53,20 @@ you can set runing config to /etc/stns/client/stns.conf.
 	},
 }
 
-type ErrorResponse struct {
-	Code int
+type Response struct {
+	StatusCode int
+	Headers    map[string]string
+	Body       []byte
 }
 
 func runServer() error {
+	supportHeaders := []string{
+		"user-highest-id",
+		"user-lowest-id",
+		"group-highest-id",
+		"group-lowest-id",
+	}
+
 	sf := globalConfig.UnixSocket
 	pidfile.SetPidfilePath(globalConfig.PIDFile)
 
@@ -91,12 +102,14 @@ func runServer() error {
 			if found {
 				w.Header().Set("STNSD-CACHE", "1")
 				switch v := body.(type) {
-				case ErrorResponse:
-					w.WriteHeader(v.Code)
-					return
-				case []byte:
-					w.WriteHeader(http.StatusOK)
-					w.Write(body.([]byte))
+				case Response:
+					w.WriteHeader(v.StatusCode)
+					if v.StatusCode == http.StatusOK {
+						w.Write(v.Body)
+						for k, vv := range v.Headers {
+							w.Header().Set(k, vv)
+						}
+					}
 					return
 				}
 			}
@@ -139,7 +152,6 @@ func runServer() error {
 			}
 			defer resp.Body.Close()
 
-			w.WriteHeader(resp.StatusCode)
 			switch resp.StatusCode {
 			case http.StatusOK:
 				body, err := ioutil.ReadAll(resp.Body)
@@ -147,15 +159,28 @@ func runServer() error {
 					return err
 				}
 				if globalConfig.Cache {
-					c.Set(cacheKey, body, cache.DefaultExpiration)
+					headers := map[string]string{}
+					for k, v := range resp.Header {
+						if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
+							headers[k] = v[0]
+							w.Header().Set(k, v[0])
+						}
+					}
+					c.Set(cacheKey,
+						Response{
+							StatusCode: resp.StatusCode,
+							Body:       body,
+							Headers:    headers,
+						},
+						cache.DefaultExpiration)
 				}
 				w.Write(body)
 			default:
 				if globalConfig.Cache {
-					c.Set(cacheKey, ErrorResponse{Code: resp.StatusCode}, time.Duration(globalConfig.NegativeCacheTTL)*time.Second)
+					c.Set(cacheKey, Response{StatusCode: resp.StatusCode}, time.Duration(globalConfig.NegativeCacheTTL)*time.Second)
 				}
-				return nil
 			}
+			w.WriteHeader(resp.StatusCode)
 
 			return nil
 		})
