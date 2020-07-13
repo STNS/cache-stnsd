@@ -10,6 +10,8 @@ else
 GO ?= GO111MODULE=on /usr/local/go/bin/go
 endif
 
+TESTCONFIG="misc/test.conf"
+
 .DEFAULT_GOAL := build
 
 .PHONY: build
@@ -39,6 +41,18 @@ goreleaser:
 
 .PHONY: test
 test:
-	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Testing$(RESET) (require: etcd,redis)"
+	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Testing$(RESET)"
 	$(GO) test -v $(TEST) -timeout=30s -parallel=4
 	$(GO) test -race $(TEST)
+
+.PHONY: run
+run:
+	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Runing$(RESET)"
+	$(GO) run main.go -c $(TESTCONFIG) server -s /tmp/stnsd.sock
+
+integration: ## Run integration test after Server wakeup
+	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Integration HTTP Testing$(RESET)"
+	./misc/server start -http
+	$(GO) test $(VERBOSE) -integration $(TEST) $(TEST_OPTIONS)
+	./misc/server stop || true
+

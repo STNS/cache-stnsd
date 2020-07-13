@@ -1,6 +1,11 @@
 package stnsd
 
-import "github.com/BurntSushi/toml"
+import (
+	"os"
+
+	"github.com/BurntSushi/toml"
+	"github.com/sirupsen/logrus"
+)
 
 type Config struct {
 	ApiEndpoint      string            `toml:"api_endpoint"`
@@ -17,7 +22,8 @@ type Config struct {
 	CacheTTL         int               `toml:"cache_ttl"`
 	NegativeCacheTTL int               `toml:"negative_cache_ttl"`
 	HttpHeaders      map[string]string `toml:"http_headers"`
-	TlS              TLS               `toml:"tls"`
+	TLS              TLS               `toml:"tls"`
+	UnixSocket       string            `toml:"socket_file"`
 }
 
 type TLS struct {
@@ -35,13 +41,21 @@ func defaultConfig(config *Config) {
 	config.RequestTimeout = 10
 	config.RequestRetry = 3
 	config.RequestLocktime = 60
+	config.UnixSocket = "/var/run/stnsd.sock"
 }
 
 func LoadConfig(filePath string) (*Config, error) {
 	var config Config
 
 	defaultConfig(&config)
-	_, err := toml.DecodeFile(filePath, &config)
+
+	_, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		logrus.Warn(err)
+		return &config, nil
+	}
+
+	_, err = toml.DecodeFile(filePath, &config)
 	if err != nil {
 		return nil, err
 	}

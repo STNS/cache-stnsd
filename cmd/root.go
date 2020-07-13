@@ -48,6 +48,12 @@ to quickly create a Cobra application.`,
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	cmd, _, err := rootCmd.Find(os.Args[1:])
+	if err != nil || cmd.Args == nil {
+		args := append([]string{"server"}, os.Args[1:]...)
+		rootCmd.SetArgs(args)
+	}
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -56,15 +62,14 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "/etc/stns/client/stns.conf", "config file (default is /etc/stnsns/client/stns.conf)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "/etc/stns/client/stns.conf", "config file (default is /etc/stnsns/client/stns.conf)")
 
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-
+	viper.SetEnvPrefix("Stnsd")
 	viper.AutomaticEnv() // read in environment variables that match
-
 	config, err := stnsd.LoadConfig(cfgFile)
 	if err != nil {
 		logrus.Fatal(err)

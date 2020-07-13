@@ -15,8 +15,18 @@ limitations under the License.
 */
 package main
 
-import "github.com/STNS/cache-stnsd/cmd"
+import (
+	"github.com/STNS/cache-stnsd/cmd"
+	"github.com/sirupsen/logrus"
+)
 
+func init() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableColors: true,
+		FullTimestamp: true,
+	})
+
+}
 func main() {
 	cmd.Execute()
 }
