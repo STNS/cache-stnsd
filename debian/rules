@@ -15,7 +15,7 @@
 
 include /usr/share/dpkg/default.mk
 
-DESTDIR=$(CURDIR)/debian/stnsd
+DESTDIR=$(CURDIR)/debian/cache-stnsd
 CONFDIR=$(DESTDIR)/etc
 PREFIX=$(DESTDIR)/usr
 BINDIR=$(PREFIX)/sbin
@@ -35,6 +35,7 @@ override_dh_auto_install:
 	install -pm 755 package/stnsd.systemd $(CONFDIR)/systemd/system/stnsd.service
 	install -pm 755 package/stnsd.sysv $(CONFDIR)/init.d/stnsd
 	find $(DESTDIR)
+
 override_dh_usrlocal:
 
 override_dh_auto_test:

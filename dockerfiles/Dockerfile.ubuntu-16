@@ -10,6 +10,7 @@ ENV URL https://storage.googleapis.com/golang/$FILE
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
+RUN ln -s /usr/local/go/bin/go /bin/go
 
 RUN set -eux &&\
   curl -OL $URL &&\

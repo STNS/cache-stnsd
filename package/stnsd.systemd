@@ -7,7 +7,8 @@ Type=simple
 PIDFile=/var/run/stnsd.pid
 ExecStart= /bin/sh -c '/usr/sbin/stnsd server >> /var/log/stnsd.log 2>&1'
 
-KillMode=process
+KillSignal=SIGINT
+KillMode=control-group
 Restart=always
 User=root
 Group=root

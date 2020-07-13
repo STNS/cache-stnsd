@@ -4,8 +4,9 @@ INFO_COLOR=\033[1;34m
 RESET=\033[0m
 BOLD=\033[1m
 TEST ?= $(shell go list ./... | grep -v -e vendor -e keys -e tmp)
-GO ?= GO111MODULE=on go
+
 GOVERSION=$(shell go version)
+GO ?= GO111MODULE=on go
 
 TESTCONFIG="misc/test.conf"
 
@@ -21,7 +22,7 @@ UNAME_S := $(shell uname -s)
 .PHONY: build
 ## build: build the nke
 build:
-	$(GO) build -o $(BUILD)/stnsd -ldflags "-X github.com/pyama86/chache-stnsd/cmd.version=$(VERSION)"
+	$(GO) build -o $(BUILD)/stnsd -ldflags "-X github.com/pyama86/cache-stnsd/cmd.version=$(VERSION)"
 
 .PHONY: install
 install: build ## Install
