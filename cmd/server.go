@@ -30,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/STNS/cache-stnsd/stnsd"
 	"github.com/facebookgo/pidfile"
 	"github.com/thoas/go-funk"
 
@@ -236,7 +237,6 @@ func setHeaders(req *http.Request) {
 		req.Header.Add(k, v)
 	}
 	req.Header.Set("User-Agent", fmt.Sprintf("stnsd/%s", version))
-
 }
 
 func setBasicAuth(req *http.Request) {
@@ -280,4 +280,19 @@ func init() {
 	serverCmd.PersistentFlags().StringP("pidfile", "p", "/var/run/stnsd.pid", "pid file")
 	viper.BindPFlag("PIDFile", serverCmd.PersistentFlags().Lookup("pidfile"))
 	rootCmd.AddCommand(serverCmd)
+	cobra.OnInitialize(initConfig)
+}
+
+// initConfig reads in config file and ENV variables if set.
+func initConfig() {
+	viper.SetEnvPrefix("Stnsd")
+	viper.AutomaticEnv() // read in environment variables that match
+	config, err := stnsd.LoadConfig(cfgFile)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	if err := viper.Unmarshal(&config); err != nil {
+		logrus.Fatal(err)
+	}
+	globalConfig = config
 }
