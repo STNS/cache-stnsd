@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/facebookgo/pidfile"
@@ -85,8 +86,19 @@ func runServer() error {
 		}
 	}()
 	c := cache.New(time.Duration(globalConfig.CacheTTL)*time.Second, 10*time.Minute)
+	var m sync.Mutex
+	var lastFailTime int64
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		m.Lock()
+		if lastFailTime != 0 && lastFailTime+globalConfig.RequestLocktime > time.Now().Unix() {
+			w.WriteHeader(http.StatusInternalServerError)
+			m.Unlock()
+			return
+		}
+		m.Unlock()
+
 		u, err := url.Parse(globalConfig.ApiEndpoint)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -184,8 +196,10 @@ func runServer() error {
 
 			return nil
 		})
-
 		if err != nil {
+			m.Lock()
+			lastFailTime = time.Now().Unix()
+			m.Unlock()
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	})

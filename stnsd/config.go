@@ -16,7 +16,7 @@ type Config struct {
 	HttpProxy        string            `toml:"http_proxy"`
 	RequestTimeout   int               `toml:"request_timeout"`
 	RequestRetry     int               `toml:"request_retry"`
-	RequestLocktime  int               `toml:"request_locktime"`
+	RequestLocktime  int64             `toml:"request_locktime"`
 	Cache            bool              `toml:"ssl_verify"`
 	CacheTTL         int               `toml:"cache_ttl"`
 	NegativeCacheTTL int               `toml:"negative_cache_ttl"`
