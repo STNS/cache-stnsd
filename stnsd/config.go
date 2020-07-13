@@ -24,6 +24,7 @@ type Config struct {
 	TLS              TLS               `toml:"tls"`
 	UnixSocket       string            `toml:"socket_file"`
 	PIDFile          string            `toml:"-"`
+	LogFile          string            `toml:"-"`
 }
 
 type TLS struct {

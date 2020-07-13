@@ -49,6 +49,16 @@ var serverCmd = &cobra.Command{
 you can set runing config to /etc/stns/client/stns.conf.
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if globalConfig.LogFile != "" {
+			f, err := os.OpenFile(globalConfig.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+			if err != nil {
+				logrus.Fatal("error opening file :" + err.Error())
+			}
+			logrus.SetOutput(f)
+		} else {
+			logrus.SetLevel(logrus.DebugLevel)
+		}
+
 		if err := runServer(); err != nil {
 			logrus.Fatal(err)
 		}
@@ -279,6 +289,10 @@ func init() {
 
 	serverCmd.PersistentFlags().StringP("pidfile", "p", "/var/run/stnsd.pid", "pid file")
 	viper.BindPFlag("PIDFile", serverCmd.PersistentFlags().Lookup("pidfile"))
+
+	serverCmd.PersistentFlags().StringP("logfile", "l", "/var/log/stnsd.log", "log file")
+	viper.BindPFlag("LogFile", serverCmd.PersistentFlags().Lookup("logfile"))
+
 	rootCmd.AddCommand(serverCmd)
 	cobra.OnInitialize(initConfig)
 }
