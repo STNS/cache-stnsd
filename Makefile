@@ -50,6 +50,7 @@ git-semv:
 	brew tap linyows/git-semv
 	brew install git-semv
 
+
 .PHONY: goreleaser
 goreleaser:
 	brew install goreleaser/tap/goreleaser
@@ -125,8 +126,10 @@ deb: source_for_deb ## Packaging for DEB
 		sed -i -e 's/xenial/$(DIST)/g' debian/changelog && \
 		debuild -uc -us
 	cd tmp.$(DIST) && \
+		find . -name "*.deb" | sed -e 's/\(\(.*cache-stnsd.*\).deb\)/mv \1 \2.$(DIST).deb/g' | sh && \
 		cp *.deb $(GOPATH)/src/github.com/STNS/cache-stnsd/builds
 	rm -rf tmp.$(DIST)
 
+.PHONY: github_release
 github_release: ## Create some distribution packages
 	ghr -u STNS --replace v$(VERSION) builds/
