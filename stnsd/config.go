@@ -14,7 +14,6 @@ type Config struct {
 	Password         string            `toml:"password"`
 	SSLVerify        bool              `toml:"ssl_verify"`
 	HttpProxy        string            `toml:"http_proxy"`
-	QueryWrapper     string            `toml:"query_wrapper"`
 	RequestTimeout   int               `toml:"request_timeout"`
 	RequestRetry     int               `toml:"request_retry"`
 	RequestLocktime  int               `toml:"request_locktime"`
