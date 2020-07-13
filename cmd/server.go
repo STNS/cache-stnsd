@@ -28,6 +28,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/facebookgo/pidfile"
+
 	"github.com/Songmu/retry"
 	"github.com/pyama86/go-cache"
 	"github.com/sirupsen/logrus"
@@ -55,12 +57,22 @@ type ErrorResponse struct {
 
 func runServer() error {
 	sf := globalConfig.UnixSocket
+	pidfile.SetPidfilePath(globalConfig.PIDFile)
 
 	unixListener, err := net.Listen("unix", sf)
 	if err != nil {
 		return err
 	}
 
+	if err := pidfile.Write(); err != nil {
+		return err
+	}
+
+	defer func() {
+		if err := os.Remove(pidfile.GetPidfilePath()); err != nil {
+			logrus.Fatalf("Error removing %s: %s", pidfile.GetPidfilePath(), err)
+		}
+	}()
 	c := cache.New(time.Duration(globalConfig.CacheTTL)*time.Second, 10*time.Minute)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -221,5 +233,8 @@ func tlsConfig() (*tls.Config, error) {
 func init() {
 	serverCmd.PersistentFlags().StringP("unix-socket", "s", "/var/run/stnsd.sock", "unix domain socket file(Env:STNSD_UNIX_SOCKET)")
 	viper.BindPFlag("UnixSocket", serverCmd.PersistentFlags().Lookup("unix-socket"))
+
+	serverCmd.PersistentFlags().StringP("pidfile", "p", "/var/run/stnsd.pid", "pid file")
+	viper.BindPFlag("PIDFile", serverCmd.PersistentFlags().Lookup("pidfile"))
 	rootCmd.AddCommand(serverCmd)
 }

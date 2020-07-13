@@ -1,0 +1,9 @@
+/var/log/stnsd.log {
+  daily
+  rotate 7
+  missingok
+  sharedscripts
+  notifempty
+  compress
+  copytruncate
+}

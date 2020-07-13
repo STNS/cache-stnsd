@@ -24,6 +24,7 @@ type Config struct {
 	HttpHeaders      map[string]string `toml:"http_headers"`
 	TLS              TLS               `toml:"tls"`
 	UnixSocket       string            `toml:"socket_file"`
+	PIDFile          string            `toml:"-"`
 }
 
 type TLS struct {
