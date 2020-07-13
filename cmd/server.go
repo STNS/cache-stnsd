@@ -38,13 +38,10 @@ import (
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers appliglobalConfig.TLS.CAtions.
-This appliglobalConfig.TLS.CAtion is a tool to generate the needed files
-to quickly create a Cobra appliglobalConfig.TLS.CAtion.`,
+	Short: "starting stnsd server",
+	Long: `It is starting stnsd(cache) command.
+you can set runing config to /etc/stns/client/stns.conf.
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := runServer(); err != nil {
 			logrus.Fatal(err)
