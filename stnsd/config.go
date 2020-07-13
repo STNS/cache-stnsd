@@ -16,7 +16,6 @@ type Config struct {
 	HttpProxy        string            `toml:"http_proxy"`
 	RequestTimeout   int               `toml:"request_timeout"`
 	RequestRetry     int               `toml:"request_retry"`
-	RequestLocktime  int               `toml:"request_locktime"`
 	Cache            bool              `toml:"ssl_verify"`
 	CacheTTL         int               `toml:"cache_ttl"`
 	NegativeCacheTTL int               `toml:"negative_cache_ttl"`
@@ -40,7 +39,6 @@ func defaultConfig(config *Config) {
 	config.Cache = true
 	config.RequestTimeout = 10
 	config.RequestRetry = 3
-	config.RequestLocktime = 60
 	config.UnixSocket = "/var/run/stnsd.sock"
 }
 
