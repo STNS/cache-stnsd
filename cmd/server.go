@@ -264,7 +264,7 @@ func setHeaders(req *http.Request) {
 	for k, v := range globalConfig.HttpHeaders {
 		req.Header.Add(k, v)
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("stnsd/%s", version))
+	req.Header.Set("User-Agent", fmt.Sprintf("cache-stnsd/%s", version))
 }
 
 func setBasicAuth(req *http.Request) {
