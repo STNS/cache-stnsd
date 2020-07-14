@@ -62,7 +62,7 @@ test:
 .PHONY: run
 run:
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Runing$(RESET)"
-	$(GO) run main.go -c $(TESTCONFIG) -p /tmp/stnsd.pid server -s /tmp/stnsd.sock
+	$(GO) run main.go -c $(TESTCONFIG) -p /tmp/stnsd.pid -l /tmp/stnsd.log server -s /tmp/stnsd.sock
 
 .PHONY: integration
 integration: ## Run integration test after Server wakeup
