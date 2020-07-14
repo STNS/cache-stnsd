@@ -17,6 +17,11 @@ set -e
 # for details, see https://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
+if [ `which service` ]; then
+  ! test -e  /etc/stns/client/stns.conf || service cache-stnsd start
+elif [ `which systemctl` ]; then
+  ! test -e /etc/stns/client/stns.conf || systemctl start cache-stnsd
+fi
 
 case "$1" in
     configure)

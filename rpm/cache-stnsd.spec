@@ -56,6 +56,11 @@ install -m 644 package/cache-stnsd.logrotate %{buildroot}%{_sysconfdir}/logrotat
 %{__rm} -rf %{buildroot}
 
 %post
+if [ `which service` ]; then
+  ! test -e  /etc/stns/client/stns.conf || service cache-stnsd start
+elif [ `which systemctl` ]; then
+  ! test -e /etc/stns/client/stns.conf || systemctl start cache-stnsd
+fi
 
 %preun
 
