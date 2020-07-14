@@ -14,7 +14,6 @@ DIST ?= unknown
 PREFIX=/usr
 BINDIR=$(PREFIX)/sbin
 SOURCES=Makefile go.mod go.sum version cmd cache_stnsd main.go package/
-DISTS=centos7 centos6 ubuntu16
 BUILD=tmp/bin
 UNAME_S := $(shell uname -s)
 .DEFAULT_GOAL := build
@@ -97,6 +96,7 @@ pkg: ## Create some distribution packages
 	rm -rf builds && mkdir builds
 	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm centos6
 	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm centos7
+	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm centos8
 	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm debian8
 	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm debian9
 	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm ubuntu16

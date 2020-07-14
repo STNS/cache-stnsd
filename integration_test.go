@@ -47,7 +47,7 @@ func TestHTTPGet(t *testing.T) {
 	client := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", "/tmp/stnsd.sock")
+				return net.Dial("unix", "/tmp/cache-stnsd.sock")
 			},
 		},
 	}
