@@ -13,7 +13,7 @@ TESTCONFIG="misc/test.conf"
 DIST ?= unknown
 PREFIX=/usr
 BINDIR=$(PREFIX)/sbin
-SOURCES=Makefile go.mod go.sum version cmd stnsd main.go package/
+SOURCES=Makefile go.mod go.sum version cmd cache_stnsd main.go package/
 DISTS=centos7 centos6 ubuntu16
 BUILD=tmp/bin
 UNAME_S := $(shell uname -s)
@@ -27,7 +27,7 @@ build:
 .PHONY: install
 install: build ## Install
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Installing as Server$(RESET)"
-	cp $(BUILD)cache-stnsd $(BINDIR)cache-stnsd
+	cp $(BUILD)/cache-stnsd $(BINDIR)/cache-stnsd
 
 .PHONY: release
 ## release: release nke (tagging and exec goreleaser)
@@ -62,7 +62,7 @@ test:
 .PHONY: run
 run:
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Runing$(RESET)"
-	$(GO) run main.go -c $(TESTCONFIG) -p /tmpcache-stnsd.pid -l /tmpcache-stnsd.log server -s /tmpcache-stnsd.sock
+	$(GO) run main.go -c $(TESTCONFIG) -p /tmp/cache-stnsd.pid -l /tmp/cache-stnsd.log server -s /tmp/cache-stnsd.sock
 
 .PHONY: integration
 integration: ## Run integration test after Server wakeup
@@ -88,8 +88,8 @@ source_for_rpm: ## Create source for RPM
 rpm: source_for_rpm ## Packaging for RPM
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Packaging for RPM$(RESET)"
 	cp builds/cache-stnsd-$(VERSION).tar.gz /root/rpmbuild/SOURCES
-	spectool -g -R rpmcache-stnsd.spec
-	rpmbuild -ba rpmcache-stnsd.spec
+	spectool -g -R rpm/cache-stnsd.spec
+	rpmbuild -ba rpm/cache-stnsd.spec
 	cp /root/rpmbuild/RPMS/*/*.rpm /go/src/github.com/STNS/cache-stnsd/builds
 
 .PHONY: pkg

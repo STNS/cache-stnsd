@@ -55,8 +55,17 @@ you can set runing config to /etc/stns/client/stns.conf.
 				logrus.Fatal("error opening file :" + err.Error())
 			}
 			logrus.SetOutput(f)
-		} else {
+		}
+
+		switch globalConfig.LogLevel {
+		case "debug":
 			logrus.SetLevel(logrus.DebugLevel)
+		case "info":
+			logrus.SetLevel(logrus.InfoLevel)
+		case "warn":
+			logrus.SetLevel(logrus.WarnLevel)
+		case "error":
+			logrus.SetLevel(logrus.ErrorLevel)
 		}
 
 		if err := runServer(); err != nil {
@@ -104,6 +113,7 @@ func runServer() error {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		m.Lock()
 		if lastFailTime != 0 && lastFailTime+globalConfig.RequestLocktime > time.Now().Unix() {
+			logrus.Infof("now duaring locktime until:%d", lastFailTime+globalConfig.RequestLocktime)
 			w.WriteHeader(http.StatusInternalServerError)
 			m.Unlock()
 			return
@@ -126,6 +136,7 @@ func runServer() error {
 				w.Header().Set("STNSD-CACHE", "1")
 				switch v := body.(type) {
 				case Response:
+					logrus.Infof("response from cache:%s", cacheKey)
 					w.WriteHeader(v.StatusCode)
 					if v.StatusCode == http.StatusOK {
 						w.Write(v.Body)
@@ -142,6 +153,7 @@ func runServer() error {
 		err = retry.Retry(uint(globalConfig.RequestRetry), 1*time.Second, func() error {
 			req, err := http.NewRequest("GET", u.String(), nil)
 			if err != nil {
+				logrus.Errorf("make http request error:%s", err.Error())
 				return err
 			}
 
@@ -150,6 +162,7 @@ func runServer() error {
 
 			tc, err := tlsConfig()
 			if err != nil {
+				logrus.Errorf("make tls config error:%s", err.Error())
 				return err
 			}
 
@@ -171,6 +184,7 @@ func runServer() error {
 			client := &http.Client{Transport: tr}
 			resp, err := client.Do(req)
 			if err != nil {
+				logrus.Errorf("http request error:%s", err.Error())
 				return err
 			}
 			defer resp.Body.Close()
@@ -181,6 +195,7 @@ func runServer() error {
 				if err != nil {
 					return err
 				}
+				logrus.Infof("status ok and response from origin:%s", cacheKey)
 				if globalConfig.Cache {
 					headers := map[string]string{}
 					for k, v := range resp.Header {
@@ -199,6 +214,7 @@ func runServer() error {
 				}
 				w.Write(body)
 			default:
+				logrus.Infof("status error %d and response from origin:%s", resp.StatusCode, cacheKey)
 				if globalConfig.Cache {
 					c.Set(cacheKey, Response{StatusCode: resp.StatusCode}, time.Duration(globalConfig.NegativeCacheTTL)*time.Second)
 				}
@@ -209,6 +225,7 @@ func runServer() error {
 		})
 		if err != nil {
 			m.Lock()
+			logrus.Warn("starting locktime")
 			lastFailTime = time.Now().Unix()
 			m.Unlock()
 			w.WriteHeader(http.StatusInternalServerError)
@@ -287,11 +304,14 @@ func init() {
 	serverCmd.PersistentFlags().StringP("unix-socket", "s", "/var/run/cache-stnsd.sock", "unix domain socket file(Env:STNSD_UNIX_SOCKET)")
 	viper.BindPFlag("UnixSocket", serverCmd.PersistentFlags().Lookup("unix-socket"))
 
-	serverCmd.PersistentFlags().StringP("pidfile", "p", "/var/run/cache-stnsd.pid", "pid file")
-	viper.BindPFlag("PIDFile", serverCmd.PersistentFlags().Lookup("pidfile"))
+	serverCmd.PersistentFlags().StringP("pid-file", "p", "/var/run/cache-stnsd.pid", "pid file")
+	viper.BindPFlag("PIDFile", serverCmd.PersistentFlags().Lookup("pid-file"))
 
-	serverCmd.PersistentFlags().StringP("logfile", "l", "/var/log/cache-stnsd.log", "log file")
-	viper.BindPFlag("LogFile", serverCmd.PersistentFlags().Lookup("logfile"))
+	serverCmd.PersistentFlags().StringP("log-file", "l", "/var/log/cache-stnsd.log", "log file")
+	viper.BindPFlag("LogFile", serverCmd.PersistentFlags().Lookup("log-file"))
+
+	serverCmd.PersistentFlags().String("log-level", "info", "log level(debug,info,warn,error)")
+	viper.BindPFlag("LogLevel", serverCmd.PersistentFlags().Lookup("log-level"))
 
 	rootCmd.AddCommand(serverCmd)
 	cobra.OnInitialize(initConfig)
