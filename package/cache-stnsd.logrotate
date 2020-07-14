@@ -1,4 +1,4 @@
-/var/log/stnsd.log {
+/var/log/cache-stnsd.log {
   daily
   rotate 7
   missingok

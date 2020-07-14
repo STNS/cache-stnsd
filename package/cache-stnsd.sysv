@@ -1,6 +1,6 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides:          stnsd
+# Provides:          cache-stnsd
 # Short-Description: 'Simple Toml Name Service'
 # Description:       'Simple Toml Name Service'
 # Author:            pyama86
@@ -10,7 +10,7 @@
 # Default-Stop:      0 1 6
 ### END INIT INFO
 
-NAME=stnsd
+NAME=cache-stnsd
 
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
 

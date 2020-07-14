@@ -31,9 +31,9 @@ BINDIR=$(PREFIX)/sbin
 override_dh_auto_install:
 	mkdir -p $(BINDIR) $(CONFDIR)/init.d $(CONFDIR)/logrotate.d $(CONFDIR)/systemd/system
 	dh_auto_install -- PREFIX=$(PREFIX) BINDIR=$(BINDIR)
-	install -pm 644 package/stnsd.logrotate $(CONFDIR)/logrotate.d/stnsd
-	install -pm 755 package/stnsd.systemd $(CONFDIR)/systemd/system/stnsd.service
-	install -pm 755 package/stnsd.sysv $(CONFDIR)/init.d/stnsd
+	install -pm 644 package/cache-stnsd.logrotate $(CONFDIR)/logrotate.d/cache-stnsd
+	install -pm 755 package/cache-stnsd.systemd $(CONFDIR)/systemd/system/cache-stnsd.service
+	install -pm 755 package/cache-stnsd.sysv $(CONFDIR)/init.d/cache-stnsd
 	find $(DESTDIR)
 
 override_dh_usrlocal:

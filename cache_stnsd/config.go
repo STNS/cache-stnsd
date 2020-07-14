@@ -1,4 +1,4 @@
-package stnsd
+package cache_stnsd
 
 import (
 	"os"

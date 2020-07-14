@@ -43,14 +43,14 @@ make PREFIX=%{buildroot}/usr/ install
 
 %if 0%{?rhel} < 7
 mkdir -p %{buildroot}%{_sysconfdir}/init.d
-install -m 755 package/stnsd.initd  %{buildroot}%{_sysconfdir}/init.d/stnsd
+install -m 755 package/cache-stnsd.initd  %{buildroot}%{_sysconfdir}/init.d/cache-stnsd
 %else
 mkdir -p %{buildroot}%{_sysconfdir}/systemd/system/
-install -m 755 package/stnsd.systemd %{buildroot}%{_sysconfdir}/systemd/system/stnsd.service
+install -m 755 package/cache-stnsd.systemd %{buildroot}%{_sysconfdir}/systemd/system/cache-stnsd.service
 %endif
 
 mkdir -p %{buildroot}%{_sysconfdir}/logrotate.d
-install -m 644 package/stnsd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/stnsd
+install -m 644 package/cache-stnsd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/cache-stnsd
 
 %clean
 %{__rm} -rf %{buildroot}
@@ -63,13 +63,13 @@ install -m 644 package/stnsd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/st
 
 %files
 %defattr(-, root, root)
-/usr/sbin/stnsd
-/etc/logrotate.d/stnsd
+/usr/sbin/cache-stnsd
+/etc/logrotate.d/cache-stnsd
 
 %if 0%{?rhel} < 7
-/etc/init.d/stnsd
+/etc/init.d/cache-stnsd
 %else
-/etc/systemd/system/stnsd.service
+/etc/systemd/system/cache-stnsd.service
 %endif
 
 %changelog

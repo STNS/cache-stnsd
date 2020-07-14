@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#       /etc/rc.d/init.d/stnsd
+#       /etc/rc.d/init.d/cache-stnsd
 #
 #       Daemon for SimpleTomlNameService
 #
@@ -8,15 +8,15 @@
 # description: Daemon for SimpleTomlNameService
 
 ### BEGIN INIT INFO
-# Provides:       stnsd
-# Short-Description: start and stop stnsd
-# Description: Daemon for stnsd
+# Provides:       cache-stnsd
+# Short-Description: start and stop cache-stnsd
+# Description: Daemon for cache-stnsd
 ### END INIT INFO
 
 # Source function library.
 . /etc/rc.d/init.d/functions
 
-prog="stnsd"
+prog="cache-stnsd"
 
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 

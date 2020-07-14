@@ -4,8 +4,8 @@ After=syslog.target network.target
 
 [Service]
 Type=simple
-PIDFile=/var/run/stnsd.pid
-ExecStart= /usr/sbin/stnsd server --logfile /var/log/stnsd.log
+PIDFile=/var/run/cache-stnsd.pid
+ExecStart= /usr/sbin/cache-stnsd server --logfile /var/log/cache-stnsd.log
 
 KillSignal=SIGINT
 Restart=always

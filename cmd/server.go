@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+Copyright © 2020 pyama86 www.kazu.com@gmail.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/STNS/cache-stnsd/stnsd"
+	"github.com/STNS/cache-stnsd/cache_stnsd"
 	"github.com/facebookgo/pidfile"
 	"github.com/thoas/go-funk"
 
@@ -44,8 +44,8 @@ import (
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "starting stnsd server",
-	Long: `It is starting stnsd(cache) command.
+	Short: "starting cache-stnsd server",
+	Long: `It is starting cache-stnsd command.
 you can set runing config to /etc/stns/client/stns.conf.
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -284,13 +284,13 @@ func tlsConfig() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 func init() {
-	serverCmd.PersistentFlags().StringP("unix-socket", "s", "/var/run/stnsd.sock", "unix domain socket file(Env:STNSD_UNIX_SOCKET)")
+	serverCmd.PersistentFlags().StringP("unix-socket", "s", "/var/run/cache-stnsd.sock", "unix domain socket file(Env:STNSD_UNIX_SOCKET)")
 	viper.BindPFlag("UnixSocket", serverCmd.PersistentFlags().Lookup("unix-socket"))
 
-	serverCmd.PersistentFlags().StringP("pidfile", "p", "/var/run/stnsd.pid", "pid file")
+	serverCmd.PersistentFlags().StringP("pidfile", "p", "/var/run/cache-stnsd.pid", "pid file")
 	viper.BindPFlag("PIDFile", serverCmd.PersistentFlags().Lookup("pidfile"))
 
-	serverCmd.PersistentFlags().StringP("logfile", "l", "/var/log/stnsd.log", "log file")
+	serverCmd.PersistentFlags().StringP("logfile", "l", "/var/log/cache-stnsd.log", "log file")
 	viper.BindPFlag("LogFile", serverCmd.PersistentFlags().Lookup("logfile"))
 
 	rootCmd.AddCommand(serverCmd)
@@ -301,7 +301,7 @@ func init() {
 func initConfig() {
 	viper.SetEnvPrefix("Stnsd")
 	viper.AutomaticEnv() // read in environment variables that match
-	config, err := stnsd.LoadConfig(cfgFile)
+	config, err := cache_stnsd.LoadConfig(cfgFile)
 	if err != nil {
 		logrus.Fatal(err)
 	}

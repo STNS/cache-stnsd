@@ -22,12 +22,12 @@ UNAME_S := $(shell uname -s)
 .PHONY: build
 ## build: build the nke
 build:
-	$(GO) build -o $(BUILD)/stnsd -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION)"
+	$(GO) build -o $(BUILD)cache-stnsd -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION)"
 
 .PHONY: install
 install: build ## Install
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Installing as Server$(RESET)"
-	cp $(BUILD)/stnsd $(BINDIR)/stnsd
+	cp $(BUILD)cache-stnsd $(BINDIR)cache-stnsd
 
 .PHONY: release
 ## release: release nke (tagging and exec goreleaser)
@@ -62,7 +62,7 @@ test:
 .PHONY: run
 run:
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Runing$(RESET)"
-	$(GO) run main.go -c $(TESTCONFIG) -p /tmp/stnsd.pid -l /tmp/stnsd.log server -s /tmp/stnsd.sock
+	$(GO) run main.go -c $(TESTCONFIG) -p /tmpcache-stnsd.pid -l /tmpcache-stnsd.log server -s /tmpcache-stnsd.sock
 
 .PHONY: integration
 integration: ## Run integration test after Server wakeup
@@ -88,8 +88,8 @@ source_for_rpm: ## Create source for RPM
 rpm: source_for_rpm ## Packaging for RPM
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Packaging for RPM$(RESET)"
 	cp builds/cache-stnsd-$(VERSION).tar.gz /root/rpmbuild/SOURCES
-	spectool -g -R rpm/stnsd.spec
-	rpmbuild -ba rpm/stnsd.spec
+	spectool -g -R rpmcache-stnsd.spec
+	rpmbuild -ba rpmcache-stnsd.spec
 	cp /root/rpmbuild/RPMS/*/*.rpm /go/src/github.com/STNS/cache-stnsd/builds
 
 .PHONY: pkg

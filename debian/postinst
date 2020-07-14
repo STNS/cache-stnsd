@@ -20,8 +20,8 @@ set -e
 
 case "$1" in
     configure)
-      update-rc.d stnsd defaults
-      update-rc.d stnsd enable >/dev/null 2>&1
+      update-rc.d cache-stnsd defaults
+      update-rc.d cache-stnsd enable >/dev/null 2>&1
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
