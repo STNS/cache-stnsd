@@ -3,11 +3,11 @@
 start_server() {
   export CI=1
   make run &
-  while ! test -e /tmp/stnsd.sock > /dev/null 2>&1; do sleep 1; echo 'sleeping'; done;
+  while ! test -e /tmp/cache-stnsd.sock > /dev/null 2>&1; do sleep 1; echo 'sleeping'; done;
 }
 
 stop_server() {
-  PID=$(lsof /tmp/stnsd.sock | tail -1 | awk '{print $2}')
+  PID=$(lsof /tmp/cache-stnsd.sock | tail -1 | awk '{print $2}')
 
   kill -SIGINT $PID
   if [ $? -ne 0 ]; then

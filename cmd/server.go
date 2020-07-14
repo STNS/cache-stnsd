@@ -26,6 +26,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -126,9 +127,9 @@ func runServer() error {
 			return
 		}
 
-		u.Path = r.URL.Path
+		u.Path = path.Join(u.Path, r.URL.Path)
 		u.RawQuery = r.URL.RawQuery
-		cacheKey := r.URL.Path + r.URL.RawQuery
+		cacheKey := u.String()
 
 		if globalConfig.Cache {
 			body, found := c.Get(cacheKey)
