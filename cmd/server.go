@@ -213,14 +213,15 @@ func runServer() error {
 						},
 						cache.DefaultExpiration)
 				}
+				w.WriteHeader(resp.StatusCode)
 				w.Write(body)
 			default:
 				logrus.Infof("status error %d and response from origin:%s", resp.StatusCode, cacheKey)
 				if globalConfig.Cache {
 					c.Set(cacheKey, Response{StatusCode: resp.StatusCode}, time.Duration(globalConfig.NegativeCacheTTL)*time.Second)
 				}
+				w.WriteHeader(resp.StatusCode)
 			}
-			w.WriteHeader(resp.StatusCode)
 
 			return nil
 		})
