@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+Copyright © 2020 pyama86 www.kazu.com@gmail.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,20 +19,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/STNS/cache-stnsd/stnsd"
-	"github.com/sirupsen/logrus"
+	"github.com/STNS/cache-stnsd/cache_stnsd"
 	"github.com/spf13/cobra"
-
-	"github.com/spf13/viper"
 )
 
 var cfgFile string
 
-var globalConfig *stnsd.Config
+var globalConfig *cache_stnsd.Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "stnsd",
+	Use:   "cache-stnsd",
 	Short: "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
@@ -55,22 +52,5 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "/etc/stns/client/stns.conf", "config file (default is /etc/stnsns/client/stns.conf)")
-
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	config, err := stnsd.LoadConfig(cfgFile)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	if err := viper.Unmarshal(&config); err != nil {
-		logrus.Fatal(err)
-	}
-	globalConfig = config
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "/etc/stns/client/stns.conf", "config file (default is /etc/stnsns/client/stns.conf)")
 }

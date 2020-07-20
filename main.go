@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+Copyright © 2020 pyama86 www.kazu.com@gmail.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,8 +15,18 @@ limitations under the License.
 */
 package main
 
-import "github.com/STNS/cache-stnsd/cmd"
+import (
+	"github.com/STNS/cache-stnsd/cmd"
+	"github.com/sirupsen/logrus"
+)
 
+func init() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableColors: true,
+		FullTimestamp: true,
+	})
+
+}
 func main() {
 	cmd.Execute()
 }

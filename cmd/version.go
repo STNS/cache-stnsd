@@ -14,9 +14,9 @@ func init() {
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the version number of stnsd",
-	Long:  `All software has versions. This is stnsd's`,
+	Short: "Print the version number of cache-stnsd",
+	Long:  `All software has versions. This is cache-stnsd's`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("stnsd v%s\n", version)
+		fmt.Printf("cache-stnsd v%s\n", version)
 	},
 }

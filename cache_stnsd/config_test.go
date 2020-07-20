@@ -1,6 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
-
+Copyright © 2020 pyama86 www.kazu.com@gmail.com
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -13,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package stnsd
+package cache_stnsd
 
 import (
 	"reflect"
@@ -43,7 +42,6 @@ func Test_LoadConfig(t *testing.T) {
 				Password:         "test_password",
 				SSLVerify:        true,
 				HttpProxy:        "http://your.proxy.com",
-				QueryWrapper:     "/usr/local/bin/stns-wrapper",
 				RequestTimeout:   1,
 				RequestRetry:     2,
 				RequestLocktime:  3,
@@ -53,11 +51,12 @@ func Test_LoadConfig(t *testing.T) {
 				HttpHeaders: map[string]string{
 					"X-API-TOKEN": "token",
 				},
-				TlS: TLS{
+				TLS: TLS{
 					CA:   "ca_cert",
 					Cert: "example_cert",
 					Key:  "example_key",
 				},
+				UnixSocket: "/var/run/stnsd.sock",
 			},
 		},
 		{
@@ -73,7 +72,6 @@ func Test_LoadConfig(t *testing.T) {
 				Password:         "",
 				SSLVerify:        true,
 				HttpProxy:        "",
-				QueryWrapper:     "",
 				RequestTimeout:   10,
 				RequestRetry:     3,
 				RequestLocktime:  60,
@@ -81,11 +79,12 @@ func Test_LoadConfig(t *testing.T) {
 				CacheTTL:         600,
 				NegativeCacheTTL: 60,
 				HttpHeaders:      nil,
-				TlS: TLS{
+				TLS: TLS{
 					CA:   "",
 					Cert: "",
 					Key:  "",
 				},
+				UnixSocket: "/var/run/stnsd.sock",
 			},
 		},
 	}
