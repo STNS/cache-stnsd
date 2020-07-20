@@ -103,7 +103,7 @@ func runServer() error {
 
 	defer func() {
 		if err := os.Remove(pidfile.GetPidfilePath()); err != nil {
-			logrus.Fatalf("Error removing %s: %s", pidfile.GetPidfilePath(), err)
+			logrus.Errorf("Error removing %s: %s", pidfile.GetPidfilePath(), err)
 		}
 	}()
 	c := cache.New(time.Duration(globalConfig.CacheTTL)*time.Second, 10*time.Minute)
@@ -242,9 +242,10 @@ func runServer() error {
 	go func() {
 		if err := server.Serve(unixListener); err != nil {
 			if err.Error() != "http: Server closed" {
-				logrus.Fatal(err)
+				logrus.Error(err)
+			} else {
+				logrus.Info(err)
 			}
-			logrus.Info(err)
 		}
 	}()
 
