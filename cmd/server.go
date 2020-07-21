@@ -239,26 +239,26 @@ func runServer() error {
 		Handler: mux,
 	}
 
-	defer os.Remove(sf)
 	go func() {
-		if err := server.Serve(unixListener); err != nil {
-			if err.Error() != "http: Server closed" {
-				logrus.Error(err)
-			} else {
-				logrus.Info(err)
-			}
+		quit := make(chan os.Signal)
+		signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
+		<-quit
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		logrus.Info("starting shutdown stnsd")
+		if err := server.Shutdown(ctx); err != nil {
+			fmt.Errorf("shutting down the server: %s", err)
 		}
 	}()
-
-	quit := make(chan os.Signal)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
-	<-quit
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	logrus.Info("starting shutdown stnsd")
-	if err := server.Shutdown(ctx); err != nil {
-		return err
+	defer os.Remove(sf)
+	if err := server.Serve(unixListener); err != nil {
+		if err.Error() != "http: Server closed" {
+			logrus.Error(err)
+		} else {
+			logrus.Info(err)
+		}
 	}
+
 	return nil
 
 }
