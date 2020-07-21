@@ -29,6 +29,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/STNS/cache-stnsd/cache_stnsd"
@@ -250,7 +251,7 @@ func runServer() error {
 	}()
 
 	quit := make(chan os.Signal)
-	signal.Notify(quit, os.Interrupt)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
 	<-quit
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
