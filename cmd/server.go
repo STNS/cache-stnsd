@@ -114,7 +114,7 @@ func runServer() error {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		m.Lock()
 		if lastFailTime != 0 && lastFailTime+globalConfig.RequestLocktime > time.Now().Unix() {
-			logrus.Infof("now duaring locktime until:%d", lastFailTime+globalConfig.RequestLocktime)
+			logrus.Warnf("now duaring locktime until:%d", lastFailTime+globalConfig.RequestLocktime)
 			w.WriteHeader(http.StatusInternalServerError)
 			m.Unlock()
 			return
@@ -137,7 +137,7 @@ func runServer() error {
 				w.Header().Set("STNSD-CACHE", "1")
 				switch v := body.(type) {
 				case Response:
-					logrus.Infof("response from cache:%s", cacheKey)
+					logrus.Debugf("response from cache:%s", cacheKey)
 					w.WriteHeader(v.StatusCode)
 					if v.StatusCode == http.StatusOK {
 						w.Write(v.Body)
@@ -196,7 +196,7 @@ func runServer() error {
 				if err != nil {
 					return err
 				}
-				logrus.Infof("status ok and response from origin:%s", cacheKey)
+				logrus.Debugf("status ok and response from origin:%s", cacheKey)
 				if globalConfig.Cache {
 					headers := map[string]string{}
 					for k, v := range resp.Header {
