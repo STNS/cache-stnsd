@@ -32,6 +32,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ReneKroon/ttlcache"
 	"github.com/STNS/cache-stnsd/cache_stnsd"
 	"github.com/facebookgo/pidfile"
 	"github.com/thoas/go-funk"
@@ -82,6 +83,34 @@ type Response struct {
 	Body       []byte
 }
 
+var lastFailTime int64
+var m sync.Mutex
+
+func setLastFailTime(n int64) {
+	m.Lock()
+	defer m.Unlock()
+	lastFailTime = n
+}
+
+func getLastFailTime() int64 {
+	m.Lock()
+	defer m.Unlock()
+	return lastFailTime
+}
+
+func ttlCache(ttl time.Duration) *ttlcache.Cache {
+	c := ttlcache.NewCache()
+	c.SetTTL(ttl)
+	c.SkipTtlExtensionOnHit(true)
+	// cache to expire when network is ok.
+	c.SetCheckExpirationCallback(
+		func(key string, value interface{}) bool {
+			return getLastFailTime() == 0
+		},
+	)
+	return c
+}
+
 func runServer() error {
 	supportHeaders := []string{
 		"user-highest-id",
@@ -107,21 +136,12 @@ func runServer() error {
 			logrus.Errorf("Error removing %s: %s", pidfile.GetPidfilePath(), err)
 		}
 	}()
-	c := cache.New(time.Duration(globalConfig.CacheTTL)*time.Second, 10*time.Minute)
-	var m sync.Mutex
-	var lastFailTime int64
+
+	c := ttlCache(time.Duration(globalConfig.CacheTTL) * time.Second)
+	defer c.Close()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		m.Lock()
-		if lastFailTime != 0 && lastFailTime+globalConfig.RequestLocktime > time.Now().Unix() {
-			logrus.Warnf("now duaring locktime until:%d", lastFailTime+globalConfig.RequestLocktime)
-			w.WriteHeader(http.StatusInternalServerError)
-			m.Unlock()
-			return
-		}
-		m.Unlock()
-
 		u, err := url.Parse(globalConfig.ApiEndpoint)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -150,6 +170,14 @@ func runServer() error {
 				}
 			}
 		}
+
+		lastFailTime := getLastFailTime()
+		if lastFailTime != 0 && lastFailTime+globalConfig.RequestLocktime > time.Now().Unix() {
+			logrus.Warnf("now duaring locktime until:%d", lastFailTime+globalConfig.RequestLocktime)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("STNSD-CACHE", "0")
 
 		err = retry.Retry(uint(globalConfig.RequestRetry), 1*time.Second, func() error {
@@ -206,7 +234,7 @@ func runServer() error {
 							w.Header().Set(k, v[0])
 						}
 					}
-					c.Set(cacheKey,
+					c.SetWithTTL(cacheKey,
 						Response{
 							StatusCode: resp.StatusCode,
 							Body:       body,
@@ -219,7 +247,7 @@ func runServer() error {
 			default:
 				logrus.Infof("status error %d and response from origin:%s", resp.StatusCode, cacheKey)
 				if globalConfig.Cache {
-					c.Set(cacheKey, Response{StatusCode: resp.StatusCode}, time.Duration(globalConfig.NegativeCacheTTL)*time.Second)
+					c.SetWithTTL(cacheKey, Response{StatusCode: resp.StatusCode}, time.Duration(globalConfig.NegativeCacheTTL)*time.Second)
 				}
 				w.WriteHeader(resp.StatusCode)
 			}
@@ -227,11 +255,11 @@ func runServer() error {
 			return nil
 		})
 		if err != nil {
-			m.Lock()
 			logrus.Warn("starting locktime")
-			lastFailTime = time.Now().Unix()
-			m.Unlock()
+			setLastFailTime(time.Now().Unix())
 			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			setLastFailTime(0)
 		}
 	})
 
