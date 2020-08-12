@@ -7,7 +7,7 @@ import (
 
 func TestEnableCacheWhenServerDown(t *testing.T) {
 	key := "example"
-	c := ttlCache(1 * time.Second)
+	c := ttlCache(500 * time.Millisecond)
 	defer c.Close()
 
 	setLastFailTime(0)
@@ -28,7 +28,7 @@ func TestEnableCacheWhenServerDown(t *testing.T) {
 		t.Fatal("could use cache")
 	}
 
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 2)
 	if _, ok := c.Get(key); !ok {
 		t.Fatal("couldn't use cache when server down")
 	}
