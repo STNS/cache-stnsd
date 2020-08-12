@@ -111,7 +111,8 @@ func ttlCache(ttl time.Duration) *ttlcache.Cache {
 	return c
 }
 
-func runServer() error {
+// return (status_codee, header, body, error)
+func httpRequest(path string) (int, map[string]string, []byte, error) {
 	supportHeaders := []string{
 		"user-highest-id",
 		"user-lowest-id",
@@ -119,6 +120,65 @@ func runServer() error {
 		"group-lowest-id",
 	}
 
+	req, err := http.NewRequest("GET", path, nil)
+	if err != nil {
+		logrus.Errorf("make http request error:%s", err.Error())
+		return 0, nil, nil, err
+	}
+
+	setHeaders(req)
+	setBasicAuth(req)
+
+	tc, err := tlsConfig()
+	if err != nil {
+		logrus.Errorf("make tls config error:%s", err.Error())
+		return 0, nil, nil, err
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: tc,
+		Dial: (&net.Dialer{
+			Timeout: time.Duration(globalConfig.RequestTimeout) * time.Second,
+		}).Dial,
+	}
+
+	tr.Proxy = http.ProxyFromEnvironment
+	if globalConfig.HttpProxy != "" {
+		proxyUrl, err := url.Parse(globalConfig.HttpProxy)
+		if err == nil {
+			tr.Proxy = http.ProxyURL(proxyUrl)
+		}
+	}
+
+	client := &http.Client{Transport: tr}
+	resp, err := client.Do(req)
+	if err != nil {
+		logrus.Errorf("http request error:%s", err.Error())
+		return 0, nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		headers := map[string]string{}
+		if globalConfig.Cache {
+			for k, v := range resp.Header {
+				if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
+					headers[k] = v[0]
+				}
+			}
+		}
+
+		return resp.StatusCode, headers, body, nil
+	default:
+		return resp.StatusCode, nil, nil, nil
+	}
+}
+func runServer() error {
 	sf := globalConfig.UnixSocket
 	pidfile.SetPidfilePath(globalConfig.PIDFile)
 
@@ -181,79 +241,37 @@ func runServer() error {
 		w.Header().Set("STNSD-CACHE", "0")
 
 		err = retry.Retry(uint(globalConfig.RequestRetry), 1*time.Second, func() error {
-			req, err := http.NewRequest("GET", u.String(), nil)
+			statusCode, headers, body, err := httpRequest(u.String())
 			if err != nil {
-				logrus.Errorf("make http request error:%s", err.Error())
 				return err
 			}
 
-			setHeaders(req)
-			setBasicAuth(req)
-
-			tc, err := tlsConfig()
-			if err != nil {
-				logrus.Errorf("make tls config error:%s", err.Error())
-				return err
-			}
-
-			tr := &http.Transport{
-				TLSClientConfig: tc,
-				Dial: (&net.Dialer{
-					Timeout: time.Duration(globalConfig.RequestTimeout) * time.Second,
-				}).Dial,
-			}
-
-			tr.Proxy = http.ProxyFromEnvironment
-			if globalConfig.HttpProxy != "" {
-				proxyUrl, err := url.Parse(globalConfig.HttpProxy)
-				if err == nil {
-					tr.Proxy = http.ProxyURL(proxyUrl)
-				}
-			}
-
-			client := &http.Client{Transport: tr}
-			resp, err := client.Do(req)
-			if err != nil {
-				logrus.Errorf("http request error:%s", err.Error())
-				return err
-			}
-			defer resp.Body.Close()
-
-			switch resp.StatusCode {
-			case http.StatusOK:
-				body, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					return err
-				}
-				logrus.Debugf("status ok and response from origin:%s", cacheKey)
+			if statusCode == http.StatusOK {
 				if globalConfig.Cache {
-					headers := map[string]string{}
-					for k, v := range resp.Header {
-						if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
-							headers[k] = v[0]
-							w.Header().Set(k, v[0])
-						}
+					for k, v := range headers {
+						w.Header().Set(k, v)
 					}
 					c.SetWithTTL(cacheKey,
 						Response{
-							StatusCode: resp.StatusCode,
+							StatusCode: statusCode,
 							Body:       body,
 							Headers:    headers,
 						},
 						cache.DefaultExpiration)
 				}
-				w.WriteHeader(resp.StatusCode)
+				w.WriteHeader(statusCode)
 				w.Write(body)
-			default:
-				logrus.Infof("status error %d and response from origin:%s", resp.StatusCode, cacheKey)
+			} else {
+
 				if globalConfig.Cache {
-					c.SetWithTTL(cacheKey, Response{StatusCode: resp.StatusCode}, time.Duration(globalConfig.NegativeCacheTTL)*time.Second)
+					c.SetWithTTL(cacheKey, Response{StatusCode: statusCode}, time.Duration(globalConfig.NegativeCacheTTL)*time.Second)
 				}
-				w.WriteHeader(resp.StatusCode)
+				w.WriteHeader(statusCode)
 			}
 
 			return nil
 		})
+
 		if err != nil {
 			logrus.Warn("starting locktime")
 			setLastFailTime(time.Now().Unix())
