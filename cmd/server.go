@@ -19,6 +19,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -27,18 +28,19 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"reflect"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/ReneKroon/ttlcache"
+	"github.com/STNS/STNS/v2/model"
 	"github.com/STNS/cache-stnsd/cache_stnsd"
 	"github.com/facebookgo/pidfile"
 	"github.com/thoas/go-funk"
 
 	"github.com/Songmu/retry"
-	"github.com/pyama86/go-cache"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -199,6 +201,121 @@ func requestURL(requestPath, query string, config *cache_stnsd.Config) (*url.URL
 	return u, nil
 
 }
+
+type MigUserGroup interface {
+	ToUserGroup() map[string]model.UserGroup
+}
+
+func prefetchUserGroups(config *cache_stnsd.Config, cache *ttlcache.Cache) {
+	prefetch := func(resource string, ug interface{}, config *cache_stnsd.Config, cache *ttlcache.Cache) error {
+		u, err := requestURL(resource, "", config)
+		if err != nil {
+			return err
+		}
+
+		cacheKey := u.String()
+		err = retry.Retry(uint(config.RequestRetry), 1*time.Second, func() error {
+			statusCode, headers, body, err := httpRequest(u.String(), config)
+			if err != nil {
+				return err
+			}
+
+			if statusCode == http.StatusOK {
+				cache.Set(cacheKey,
+					Response{
+						StatusCode: statusCode,
+						Body:       body,
+						Headers:    headers,
+					},
+				)
+				userGroups := []model.UserGroup{}
+
+				switch v := ug.(type) {
+				case []*model.User:
+					if err := json.Unmarshal(body, &v); err != nil {
+						return err
+					}
+
+					for _, u := range v {
+						userGroups = append(userGroups, u)
+					}
+				case []*model.Group:
+					if err := json.Unmarshal(body, &v); err != nil {
+						return err
+					}
+					for _, u := range v {
+						userGroups = append(userGroups, u)
+					}
+				default:
+					return fmt.Errorf("unknown type: %v", reflect.TypeOf(ug))
+				}
+
+				for _, val := range userGroups {
+					j, err := json.Marshal(val)
+					if err != nil {
+						return err
+					}
+
+					j = []byte("[" + string(j) + "]")
+
+					u, err := requestURL(resource, fmt.Sprintf("name=%s", val.GetName()), config)
+					if err != nil {
+						return err
+					}
+
+					logrus.Debugf("prefetch: set cache key:%s", u.String())
+					cache.Set(u.String(),
+						Response{
+							StatusCode: statusCode,
+							Body:       j,
+							Headers:    headers,
+						},
+					)
+
+					u, err = requestURL(resource, fmt.Sprintf("id=%d", val.GetID()), config)
+					if err != nil {
+						return err
+					}
+
+					logrus.Debugf("prefetch: set cache key:%s", u.String())
+					cache.Set(u.String(),
+						Response{
+							StatusCode: statusCode,
+							Body:       j,
+							Headers:    headers,
+						},
+					)
+
+				}
+
+			} else {
+				cache.SetWithTTL(cacheKey, Response{StatusCode: statusCode}, time.Duration(config.NegativeCacheTTL)*time.Second)
+			}
+			return nil
+		})
+
+		if err != nil {
+			logrus.Warn("starting locktime")
+			setLastFailTime(time.Now().Unix())
+		} else {
+			setLastFailTime(0)
+		}
+
+		return nil
+	}
+
+	users := []*model.User{}
+	groups := []*model.Group{}
+
+	if err := prefetch("users", users, config, cache); err != nil {
+		logrus.Error(err)
+	}
+	if err := prefetch("groups", groups, config, cache); err != nil {
+		logrus.Error(err)
+	}
+
+}
+
 func runServer(config *cache_stnsd.Config) error {
 	sf := config.UnixSocket
 	pidfile.SetPidfilePath(config.PIDFile)
@@ -218,8 +335,8 @@ func runServer(config *cache_stnsd.Config) error {
 		}
 	}()
 
-	c := ttlCache(time.Duration(config.CacheTTL) * time.Second)
-	defer c.Close()
+	cache := ttlCache(time.Duration(config.CacheTTL) * time.Second)
+	defer cache.Close()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -231,7 +348,7 @@ func runServer(config *cache_stnsd.Config) error {
 		cacheKey := u.String()
 
 		if config.Cache {
-			body, found := c.Get(cacheKey)
+			body, found := cache.Get(cacheKey)
 			if found {
 				w.Header().Set("STNSD-CACHE", "1")
 				switch v := body.(type) {
@@ -269,19 +386,18 @@ func runServer(config *cache_stnsd.Config) error {
 					w.Header().Set(k, v)
 				}
 				if config.Cache {
-					c.SetWithTTL(cacheKey,
+					cache.Set(cacheKey,
 						Response{
 							StatusCode: statusCode,
 							Body:       body,
 							Headers:    headers,
-						},
-						cache.DefaultExpiration)
+						})
 				}
 				w.WriteHeader(statusCode)
 				w.Write(body)
 			} else {
 				if config.Cache {
-					c.SetWithTTL(cacheKey, Response{StatusCode: statusCode}, time.Duration(config.NegativeCacheTTL)*time.Second)
+					cache.SetWithTTL(cacheKey, Response{StatusCode: statusCode}, time.Duration(config.NegativeCacheTTL)*time.Second)
 				}
 				w.WriteHeader(statusCode)
 			}
@@ -302,23 +418,45 @@ func runServer(config *cache_stnsd.Config) error {
 		Handler: mux,
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if config.Cached.Prefetch {
+		go func() {
+			t := time.NewTicker(time.Duration(config.CacheTTL) * time.Second)
+			defer func() {
+				t.Stop()
+			}()
+			for {
+				select {
+				case <-t.C:
+					logrus.Info("start prefetch")
+					prefetchUserGroups(config, cache)
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
 	go func() {
 		quit := make(chan os.Signal)
 		signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
 		<-quit
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		logrus.Info("starting shutdown stnsd")
 		if err := server.Shutdown(ctx); err != nil {
-			fmt.Errorf("shutting down the server: %s", err)
+			logrus.Errorf("shutting down the server: %s", err)
 		}
 	}()
 	defer os.Remove(sf)
+	logrus.Info("starting cache-stnsd")
 	if err := server.Serve(unixListener); err != nil {
 		if err.Error() != "http: Server closed" {
 			logrus.Error(err)
 		} else {
-			logrus.Info(err)
+			logrus.Info("shutdown cache-stnsd")
 		}
 	}
 
