@@ -19,13 +19,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/STNS/cache-stnsd/cache_stnsd"
 	"github.com/spf13/cobra"
 )
 
 var cfgFile string
-
-var globalConfig *cache_stnsd.Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
