@@ -176,11 +176,9 @@ func httpRequest(path string, config *cache_stnsd.Config) (int, map[string]strin
 			return 0, nil, nil, err
 		}
 		headers := map[string]string{}
-		if config.Cache {
-			for k, v := range resp.Header {
-				if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
-					headers[k] = v[0]
-				}
+		for k, v := range resp.Header {
+			if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
+				headers[k] = v[0]
 			}
 		}
 
@@ -258,10 +256,10 @@ func runServer(config *cache_stnsd.Config) error {
 			}
 
 			if statusCode == http.StatusOK {
+				for k, v := range headers {
+					w.Header().Set(k, v)
+				}
 				if config.Cache {
-					for k, v := range headers {
-						w.Header().Set(k, v)
-					}
 					c.SetWithTTL(cacheKey,
 						Response{
 							StatusCode: statusCode,
