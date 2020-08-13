@@ -187,6 +187,18 @@ func httpRequest(path string, config *cache_stnsd.Config) (int, map[string]strin
 		return resp.StatusCode, nil, nil, nil
 	}
 }
+
+func requestURL(requestPath, query string, config *cache_stnsd.Config) (*url.URL, error) {
+	u, err := url.Parse(config.ApiEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, requestPath)
+	u.RawQuery = query
+	return u, nil
+
+}
 func runServer(config *cache_stnsd.Config) error {
 	sf := config.UnixSocket
 	pidfile.SetPidfilePath(config.PIDFile)
@@ -211,14 +223,11 @@ func runServer(config *cache_stnsd.Config) error {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		u, err := url.Parse(config.ApiEndpoint)
+		u, err := requestURL(r.URL.Path, r.URL.RawQuery, config)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		u.Path = path.Join(u.Path, r.URL.Path)
-		u.RawQuery = r.URL.RawQuery
 		cacheKey := u.String()
 
 		if config.Cache {
