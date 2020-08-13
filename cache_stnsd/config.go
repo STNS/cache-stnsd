@@ -26,6 +26,11 @@ type Config struct {
 	PIDFile          string            `toml:"-"`
 	LogFile          string            `toml:"-"`
 	LogLevel         string            `toml:"-"`
+	Cached           Cached            `toml:"cached"`
+}
+
+type Cached struct {
+	Prefetch bool `toml:"prefetch"`
 }
 
 type TLS struct {

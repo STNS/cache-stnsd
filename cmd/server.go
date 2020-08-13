@@ -7,7 +7,7 @@ You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by appliglobalConfig.TLS.CAble law or agreed to in writing, software
+Unless required by appliconfig.TLS.CAble law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
@@ -52,15 +52,26 @@ var serverCmd = &cobra.Command{
 you can set runing config to /etc/stns/client/stns.conf.
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if globalConfig.LogFile != "" {
-			f, err := os.OpenFile(globalConfig.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+		var config *cache_stnsd.Config
+		viper.SetEnvPrefix("Stnsd")
+		viper.AutomaticEnv()
+		config, err := cache_stnsd.LoadConfig(cfgFile)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		if err := viper.Unmarshal(&config); err != nil {
+			logrus.Fatal(err)
+		}
+
+		if config.LogFile != "" {
+			f, err := os.OpenFile(config.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 			if err != nil {
 				logrus.Fatal("error opening file :" + err.Error())
 			}
 			logrus.SetOutput(f)
 		}
 
-		switch globalConfig.LogLevel {
+		switch config.LogLevel {
 		case "debug":
 			logrus.SetLevel(logrus.DebugLevel)
 		case "info":
@@ -71,7 +82,7 @@ you can set runing config to /etc/stns/client/stns.conf.
 			logrus.SetLevel(logrus.ErrorLevel)
 		}
 
-		if err := runServer(); err != nil {
+		if err := runServer(config); err != nil {
 			logrus.Fatal(err)
 		}
 	},
@@ -112,7 +123,7 @@ func ttlCache(ttl time.Duration) *ttlcache.Cache {
 }
 
 // return (status_codee, header, body, error)
-func httpRequest(path string) (int, map[string]string, []byte, error) {
+func httpRequest(path string, config *cache_stnsd.Config) (int, map[string]string, []byte, error) {
 	supportHeaders := []string{
 		"user-highest-id",
 		"user-lowest-id",
@@ -126,10 +137,10 @@ func httpRequest(path string) (int, map[string]string, []byte, error) {
 		return 0, nil, nil, err
 	}
 
-	setHeaders(req)
-	setBasicAuth(req)
+	setHeaders(req, config)
+	setBasicAuth(req, config)
 
-	tc, err := tlsConfig()
+	tc, err := tlsConfig(config)
 	if err != nil {
 		logrus.Errorf("make tls config error:%s", err.Error())
 		return 0, nil, nil, err
@@ -138,13 +149,13 @@ func httpRequest(path string) (int, map[string]string, []byte, error) {
 	tr := &http.Transport{
 		TLSClientConfig: tc,
 		Dial: (&net.Dialer{
-			Timeout: time.Duration(globalConfig.RequestTimeout) * time.Second,
+			Timeout: time.Duration(config.RequestTimeout) * time.Second,
 		}).Dial,
 	}
 
 	tr.Proxy = http.ProxyFromEnvironment
-	if globalConfig.HttpProxy != "" {
-		proxyUrl, err := url.Parse(globalConfig.HttpProxy)
+	if config.HttpProxy != "" {
+		proxyUrl, err := url.Parse(config.HttpProxy)
 		if err == nil {
 			tr.Proxy = http.ProxyURL(proxyUrl)
 		}
@@ -165,7 +176,7 @@ func httpRequest(path string) (int, map[string]string, []byte, error) {
 			return 0, nil, nil, err
 		}
 		headers := map[string]string{}
-		if globalConfig.Cache {
+		if config.Cache {
 			for k, v := range resp.Header {
 				if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
 					headers[k] = v[0]
@@ -178,9 +189,9 @@ func httpRequest(path string) (int, map[string]string, []byte, error) {
 		return resp.StatusCode, nil, nil, nil
 	}
 }
-func runServer() error {
-	sf := globalConfig.UnixSocket
-	pidfile.SetPidfilePath(globalConfig.PIDFile)
+func runServer(config *cache_stnsd.Config) error {
+	sf := config.UnixSocket
+	pidfile.SetPidfilePath(config.PIDFile)
 
 	unixListener, err := net.Listen("unix", sf)
 	if err != nil {
@@ -197,12 +208,12 @@ func runServer() error {
 		}
 	}()
 
-	c := ttlCache(time.Duration(globalConfig.CacheTTL) * time.Second)
+	c := ttlCache(time.Duration(config.CacheTTL) * time.Second)
 	defer c.Close()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		u, err := url.Parse(globalConfig.ApiEndpoint)
+		u, err := url.Parse(config.ApiEndpoint)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -212,7 +223,7 @@ func runServer() error {
 		u.RawQuery = r.URL.RawQuery
 		cacheKey := u.String()
 
-		if globalConfig.Cache {
+		if config.Cache {
 			body, found := c.Get(cacheKey)
 			if found {
 				w.Header().Set("STNSD-CACHE", "1")
@@ -232,22 +243,22 @@ func runServer() error {
 		}
 
 		lastFailTime := getLastFailTime()
-		if lastFailTime != 0 && lastFailTime+globalConfig.RequestLocktime > time.Now().Unix() {
-			logrus.Warnf("now duaring locktime until:%d", lastFailTime+globalConfig.RequestLocktime)
+		if lastFailTime != 0 && lastFailTime+config.RequestLocktime > time.Now().Unix() {
+			logrus.Warnf("now duaring locktime until:%d", lastFailTime+config.RequestLocktime)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("STNSD-CACHE", "0")
 
-		err = retry.Retry(uint(globalConfig.RequestRetry), 1*time.Second, func() error {
-			statusCode, headers, body, err := httpRequest(u.String())
+		err = retry.Retry(uint(config.RequestRetry), 1*time.Second, func() error {
+			statusCode, headers, body, err := httpRequest(u.String(), config)
 			if err != nil {
 				return err
 			}
 
 			if statusCode == http.StatusOK {
-				if globalConfig.Cache {
+				if config.Cache {
 					for k, v := range headers {
 						w.Header().Set(k, v)
 					}
@@ -262,9 +273,8 @@ func runServer() error {
 				w.WriteHeader(statusCode)
 				w.Write(body)
 			} else {
-
-				if globalConfig.Cache {
-					c.SetWithTTL(cacheKey, Response{StatusCode: statusCode}, time.Duration(globalConfig.NegativeCacheTTL)*time.Second)
+				if config.Cache {
+					c.SetWithTTL(cacheKey, Response{StatusCode: statusCode}, time.Duration(config.NegativeCacheTTL)*time.Second)
 				}
 				w.WriteHeader(statusCode)
 			}
@@ -309,24 +319,24 @@ func runServer() error {
 
 }
 
-func setHeaders(req *http.Request) {
-	for k, v := range globalConfig.HttpHeaders {
+func setHeaders(req *http.Request, config *cache_stnsd.Config) {
+	for k, v := range config.HttpHeaders {
 		req.Header.Add(k, v)
 	}
 	req.Header.Set("User-Agent", fmt.Sprintf("cache-stnsd/%s", version))
 }
 
-func setBasicAuth(req *http.Request) {
-	if globalConfig.User != "" && globalConfig.Password != "" {
-		req.SetBasicAuth(globalConfig.User, globalConfig.Password)
+func setBasicAuth(req *http.Request, config *cache_stnsd.Config) {
+	if config.User != "" && config.Password != "" {
+		req.SetBasicAuth(config.User, config.Password)
 	}
 }
-func tlsConfig() (*tls.Config, error) {
-	tlsConfig := &tls.Config{InsecureSkipVerify: !globalConfig.SSLVerify}
-	if globalConfig.TLS.CA != "" {
+func tlsConfig(config *cache_stnsd.Config) (*tls.Config, error) {
+	tlsConfig := &tls.Config{InsecureSkipVerify: !config.SSLVerify}
+	if config.TLS.CA != "" {
 		CA_Pool := x509.NewCertPool()
 
-		severCert, err := ioutil.ReadFile(globalConfig.TLS.CA)
+		severCert, err := ioutil.ReadFile(config.TLS.CA)
 		if err != nil {
 			return nil, err
 		}
@@ -335,8 +345,8 @@ func tlsConfig() (*tls.Config, error) {
 		tlsConfig.RootCAs = CA_Pool
 	}
 
-	if globalConfig.TLS.Cert != "" && globalConfig.TLS.Key != "" {
-		x509Cert, err := tls.LoadX509KeyPair(globalConfig.TLS.Cert, globalConfig.TLS.Key)
+	if config.TLS.Cert != "" && config.TLS.Key != "" {
+		x509Cert, err := tls.LoadX509KeyPair(config.TLS.Cert, config.TLS.Key)
 		if err != nil {
 			return nil, err
 		}
@@ -364,19 +374,4 @@ func init() {
 	viper.BindPFlag("LogLevel", serverCmd.PersistentFlags().Lookup("log-level"))
 
 	rootCmd.AddCommand(serverCmd)
-	cobra.OnInitialize(initConfig)
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	viper.SetEnvPrefix("Stnsd")
-	viper.AutomaticEnv() // read in environment variables that match
-	config, err := cache_stnsd.LoadConfig(cfgFile)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	if err := viper.Unmarshal(&config); err != nil {
-		logrus.Fatal(err)
-	}
-	globalConfig = config
 }

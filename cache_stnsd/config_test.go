@@ -57,6 +57,9 @@ func Test_LoadConfig(t *testing.T) {
 					Key:  "example_key",
 				},
 				UnixSocket: "/var/run/stnsd.sock",
+				Cached: Cached{
+					Prefetch: true,
+				},
 			},
 		},
 		{
