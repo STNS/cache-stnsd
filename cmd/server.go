@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -38,9 +39,9 @@ import (
 	"github.com/STNS/STNS/v2/model"
 	"github.com/STNS/cache-stnsd/cache_stnsd"
 	"github.com/facebookgo/pidfile"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/thoas/go-funk"
 
-	"github.com/Songmu/retry"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -124,8 +125,7 @@ func ttlCache(ttl time.Duration) *ttlcache.Cache {
 	return c
 }
 
-// return (status_codee, header, body, error)
-func httpRequest(path string, config *cache_stnsd.Config) (int, map[string]string, []byte, error) {
+func httpRequest(path string, config *cache_stnsd.Config, cache *ttlcache.Cache) (bool, *Response, error) {
 	supportHeaders := []string{
 		"user-highest-id",
 		"user-lowest-id",
@@ -133,10 +133,26 @@ func httpRequest(path string, config *cache_stnsd.Config) (int, map[string]strin
 		"group-lowest-id",
 	}
 
+	if config.Cache {
+		body, found := cache.Get(path)
+		if found {
+			switch v := body.(type) {
+			case Response:
+				logrus.Debugf("response from cache:%s", path)
+				return true, &v, nil
+			}
+		}
+	}
+
+	lastFailTime := getLastFailTime()
+	if lastFailTime != 0 && lastFailTime+config.RequestLocktime > time.Now().Unix() {
+		return false, nil, errors.New("now request locking")
+	}
+
 	req, err := http.NewRequest("GET", path, nil)
 	if err != nil {
 		logrus.Errorf("make http request error:%s", err.Error())
-		return 0, nil, nil, err
+		return false, nil, err
 	}
 
 	setHeaders(req, config)
@@ -145,7 +161,7 @@ func httpRequest(path string, config *cache_stnsd.Config) (int, map[string]strin
 	tc, err := tlsConfig(config)
 	if err != nil {
 		logrus.Errorf("make tls config error:%s", err.Error())
-		return 0, nil, nil, err
+		return false, nil, err
 	}
 
 	tr := &http.Transport{
@@ -162,31 +178,55 @@ func httpRequest(path string, config *cache_stnsd.Config) (int, map[string]strin
 			tr.Proxy = http.ProxyURL(proxyUrl)
 		}
 	}
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = config.RequestRetry
 
-	client := &http.Client{Transport: tr}
+	client := retryClient.StandardClient()
+	client.Transport = tr
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Errorf("http request error:%s", err.Error())
-		return 0, nil, nil, err
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			setLastFailTime(time.Now().Unix())
+		}
+		return false, nil, err
 	}
+	setLastFailTime(0)
 	defer resp.Body.Close()
+
+	headers := map[string]string{}
+	for k, v := range resp.Header {
+		if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
+			headers[k] = v[0]
+		}
+	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return 0, nil, nil, err
-		}
-		headers := map[string]string{}
-		for k, v := range resp.Header {
-			if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
-				headers[k] = v[0]
-			}
+			return false, nil, err
 		}
 
-		return resp.StatusCode, headers, body, nil
+		r := Response{
+			StatusCode: resp.StatusCode,
+			Body:       body,
+			Headers:    headers,
+		}
+		if config.Cache {
+			cache.Set(path, r)
+		}
+
+		return false, &r, nil
 	default:
-		return resp.StatusCode, nil, nil, nil
+		r := Response{
+			StatusCode: resp.StatusCode,
+			Headers:    headers,
+		}
+		if config.Cache {
+			cache.SetWithTTL(path, r, time.Duration(config.NegativeCacheTTL)*time.Second)
+		}
+		return false, &r, nil
 	}
 }
 
@@ -202,111 +242,89 @@ func requestURL(requestPath, query string, config *cache_stnsd.Config) (*url.URL
 
 }
 
-func prefetchUserGroups(config *cache_stnsd.Config, cache *ttlcache.Cache) {
-	prefetch := func(resource string, ug interface{}, config *cache_stnsd.Config, cache *ttlcache.Cache) error {
-		u, err := requestURL(resource, "", config)
-		if err != nil {
-			return err
+func prefetchUserOrGroup(resource string, ug interface{}, config *cache_stnsd.Config, cache *ttlcache.Cache) error {
+	u, err := requestURL(resource, "", config)
+	if err != nil {
+		return err
+	}
+
+	_, resp, err := httpRequest(u.String(), config, cache)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		userGroups := []model.UserGroup{}
+
+		switch v := ug.(type) {
+		case []*model.User:
+			if err := json.Unmarshal(resp.Body, &v); err != nil {
+				return err
+			}
+
+			for _, u := range v {
+				userGroups = append(userGroups, u)
+			}
+		case []*model.Group:
+			if err := json.Unmarshal(resp.Body, &v); err != nil {
+				return err
+			}
+			for _, u := range v {
+				userGroups = append(userGroups, u)
+			}
+		default:
+			return fmt.Errorf("unknown type: %v", reflect.TypeOf(ug))
 		}
 
-		cacheKey := u.String()
-		err = retry.Retry(uint(config.RequestRetry), 1*time.Second, func() error {
-			statusCode, headers, body, err := httpRequest(u.String(), config)
+		for _, val := range userGroups {
+			j, err := json.Marshal(val)
 			if err != nil {
 				return err
 			}
 
-			if statusCode == http.StatusOK {
-				cache.Set(cacheKey,
-					Response{
-						StatusCode: statusCode,
-						Body:       body,
-						Headers:    headers,
-					},
-				)
-				userGroups := []model.UserGroup{}
+			j = []byte("[" + string(j) + "]")
 
-				switch v := ug.(type) {
-				case []*model.User:
-					if err := json.Unmarshal(body, &v); err != nil {
-						return err
-					}
-
-					for _, u := range v {
-						userGroups = append(userGroups, u)
-					}
-				case []*model.Group:
-					if err := json.Unmarshal(body, &v); err != nil {
-						return err
-					}
-					for _, u := range v {
-						userGroups = append(userGroups, u)
-					}
-				default:
-					return fmt.Errorf("unknown type: %v", reflect.TypeOf(ug))
-				}
-
-				for _, val := range userGroups {
-					j, err := json.Marshal(val)
-					if err != nil {
-						return err
-					}
-
-					j = []byte("[" + string(j) + "]")
-
-					u, err := requestURL(resource, fmt.Sprintf("name=%s", val.GetName()), config)
-					if err != nil {
-						return err
-					}
-
-					logrus.Debugf("prefetch: set cache key:%s", u.String())
-					cache.Set(u.String(),
-						Response{
-							StatusCode: statusCode,
-							Body:       j,
-							Headers:    headers,
-						},
-					)
-
-					u, err = requestURL(resource, fmt.Sprintf("id=%d", val.GetID()), config)
-					if err != nil {
-						return err
-					}
-
-					logrus.Debugf("prefetch: set cache key:%s", u.String())
-					cache.Set(u.String(),
-						Response{
-							StatusCode: statusCode,
-							Body:       j,
-							Headers:    headers,
-						},
-					)
-
-				}
-
-			} else {
-				cache.SetWithTTL(cacheKey, Response{StatusCode: statusCode}, time.Duration(config.NegativeCacheTTL)*time.Second)
+			u, err := requestURL(resource, fmt.Sprintf("name=%s", val.GetName()), config)
+			if err != nil {
+				return err
 			}
-			return nil
-		})
 
-		if err != nil {
-			logrus.Warn("starting locktime")
-			setLastFailTime(time.Now().Unix())
-		} else {
-			setLastFailTime(0)
+			logrus.Debugf("prefetch: set cache key:%s", u.String())
+			cache.Set(u.String(),
+				Response{
+					StatusCode: http.StatusOK,
+					Body:       j,
+					Headers:    resp.Headers,
+				},
+			)
+
+			u, err = requestURL(resource, fmt.Sprintf("id=%d", val.GetID()), config)
+			if err != nil {
+				return err
+			}
+
+			logrus.Debugf("prefetch: set cache key:%s", u.String())
+			cache.Set(u.String(),
+				Response{
+					StatusCode: http.StatusOK,
+					Body:       j,
+					Headers:    resp.Headers,
+				},
+			)
+
 		}
-
-		return nil
 	}
+	return nil
+}
 
+func prefetchUserGroups(config *cache_stnsd.Config, cache *ttlcache.Cache) {
 	users := []*model.User{}
 	groups := []*model.Group{}
 
-	if err := prefetch("users", users, config, cache); err != nil {
+	if err := prefetchUserOrGroup("users", users, config, cache); err != nil {
 		logrus.Error(err)
 	}
-	if err := prefetch("groups", groups, config, cache); err != nil {
+	if err := prefetchUserOrGroup("groups", groups, config, cache); err != nil {
 		logrus.Error(err)
 	}
 
@@ -341,72 +359,27 @@ func runServer(config *cache_stnsd.Config) error {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		cacheKey := u.String()
 
-		if config.Cache {
-			body, found := cache.Get(cacheKey)
-			if found {
-				w.Header().Set("STNSD-CACHE", "1")
-				switch v := body.(type) {
-				case Response:
-					logrus.Debugf("response from cache:%s", cacheKey)
-					w.WriteHeader(v.StatusCode)
-					if v.StatusCode == http.StatusOK {
-						w.Write(v.Body)
-						for k, vv := range v.Headers {
-							w.Header().Set(k, vv)
-						}
-					}
-					return
-				}
-			}
-		}
-
-		lastFailTime := getLastFailTime()
-		if lastFailTime != 0 && lastFailTime+config.RequestLocktime > time.Now().Unix() {
-			logrus.Warnf("now duaring locktime until:%d", lastFailTime+config.RequestLocktime)
+		w.Header().Set("STNSD-CACHE", "0")
+		isCache, resp, err := httpRequest(u.String(), config, cache)
+		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		w.Header().Set("STNSD-CACHE", "0")
+		if isCache {
+			w.Header().Set("STNSD-CACHE", "1")
+		}
 
-		err = retry.Retry(uint(config.RequestRetry), 1*time.Second, func() error {
-			statusCode, headers, body, err := httpRequest(u.String(), config)
-			if err != nil {
-				return err
+		if len(resp.Headers) > 0 {
+			for k, vv := range resp.Headers {
+				w.Header().Set(k, vv)
 			}
+		}
 
-			if statusCode == http.StatusOK {
-				for k, v := range headers {
-					w.Header().Set(k, v)
-				}
-				if config.Cache {
-					cache.Set(cacheKey,
-						Response{
-							StatusCode: statusCode,
-							Body:       body,
-							Headers:    headers,
-						})
-				}
-				w.WriteHeader(statusCode)
-				w.Write(body)
-			} else {
-				if config.Cache {
-					cache.SetWithTTL(cacheKey, Response{StatusCode: statusCode}, time.Duration(config.NegativeCacheTTL)*time.Second)
-				}
-				w.WriteHeader(statusCode)
-			}
-
-			return nil
-		})
-
-		if err != nil {
-			logrus.Warn("starting locktime")
-			setLastFailTime(time.Now().Unix())
-			w.WriteHeader(http.StatusInternalServerError)
-		} else {
-			setLastFailTime(0)
+		w.WriteHeader(resp.StatusCode)
+		if resp.StatusCode == http.StatusOK {
+			w.Write(resp.Body)
 		}
 	})
 
@@ -417,7 +390,7 @@ func runServer(config *cache_stnsd.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if config.Cached.Prefetch {
+	if config.Cache && config.Cached.Prefetch {
 		go func() {
 			t := time.NewTicker(time.Duration(config.CacheTTL) * time.Second)
 			defer func() {

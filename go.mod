@@ -10,6 +10,7 @@ require (
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/facebookgo/pidfile v0.0.0-20150612191647-f242e2999868
 	github.com/flosch/pongo2 v0.0.0-20200529170236-5abacdfa4915 // indirect
+	github.com/hashicorp/go-retryablehttp v0.6.7
 	github.com/juju/go4 v0.0.0-20160222163258-40d72ab9641a // indirect
 	github.com/juju/persistent-cookiejar v0.0.0-20171026135701-d5e5a8405ef9 // indirect
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
