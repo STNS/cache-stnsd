@@ -56,9 +56,9 @@ func Test_LoadConfig(t *testing.T) {
 					Cert: "example_cert",
 					Key:  "example_key",
 				},
-				UnixSocket: "/var/run/stnsd.sock",
 				Cached: Cached{
-					Prefetch: true,
+					UnixSocket: "/var/run/stnsd.sock",
+					Prefetch:   true,
 				},
 			},
 		},
@@ -87,7 +87,9 @@ func Test_LoadConfig(t *testing.T) {
 					Cert: "",
 					Key:  "",
 				},
-				UnixSocket: "/var/run/stnsd.sock",
+				Cached: Cached{
+					UnixSocket: "/var/run/stnsd.sock",
+				},
 			},
 		},
 	}

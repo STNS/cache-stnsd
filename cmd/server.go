@@ -99,6 +99,10 @@ func runServer(config *cache_stnsd.Config) error {
 		return err
 	}
 
+	if err := os.Chmod(sf, 0777); err != nil {
+		return err
+	}
+
 	if err := pidfile.Write(); err != nil {
 		return err
 	}
