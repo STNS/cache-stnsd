@@ -17,30 +17,16 @@ package cmd
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
-	"path"
-	"reflect"
-	"strings"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/ReneKroon/ttlcache"
-	"github.com/STNS/STNS/v2/model"
 	"github.com/STNS/cache-stnsd/cache_stnsd"
 	"github.com/facebookgo/pidfile"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/thoas/go-funk"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -91,27 +77,6 @@ you can set runing config to /etc/stns/client/stns.conf.
 	},
 }
 
-type Response struct {
-	StatusCode int
-	Headers    map[string]string
-	Body       []byte
-}
-
-var lastFailTime int64
-var m sync.Mutex
-
-func setLastFailTime(n int64) {
-	m.Lock()
-	defer m.Unlock()
-	lastFailTime = n
-}
-
-func getLastFailTime() int64 {
-	m.Lock()
-	defer m.Unlock()
-	return lastFailTime
-}
-
 func ttlCache(ttl time.Duration) *ttlcache.Cache {
 	c := ttlcache.NewCache()
 	c.SetTTL(ttl)
@@ -119,215 +84,10 @@ func ttlCache(ttl time.Duration) *ttlcache.Cache {
 	// cache to expire when network is ok.
 	c.SetCheckExpirationCallback(
 		func(key string, value interface{}) bool {
-			return getLastFailTime() == 0
+			return cache_stnsd.GetLastFailTime() == 0
 		},
 	)
 	return c
-}
-
-func httpRequest(path string, config *cache_stnsd.Config, cache *ttlcache.Cache) (bool, *Response, error) {
-	supportHeaders := []string{
-		"user-highest-id",
-		"user-lowest-id",
-		"group-highest-id",
-		"group-lowest-id",
-	}
-
-	if config.Cache {
-		body, found := cache.Get(path)
-		if found {
-			switch v := body.(type) {
-			case Response:
-				logrus.Debugf("response from cache:%s", path)
-				return true, &v, nil
-			}
-		}
-	}
-
-	lastFailTime := getLastFailTime()
-	if lastFailTime != 0 && lastFailTime+config.RequestLocktime > time.Now().Unix() {
-		return false, nil, errors.New("now request locking")
-	}
-
-	req, err := http.NewRequest("GET", path, nil)
-	if err != nil {
-		logrus.Errorf("make http request error:%s", err.Error())
-		return false, nil, err
-	}
-
-	setHeaders(req, config)
-	setBasicAuth(req, config)
-
-	tc, err := tlsConfig(config)
-	if err != nil {
-		logrus.Errorf("make tls config error:%s", err.Error())
-		return false, nil, err
-	}
-
-	tr := &http.Transport{
-		TLSClientConfig: tc,
-		Dial: (&net.Dialer{
-			Timeout: time.Duration(config.RequestTimeout) * time.Second,
-		}).Dial,
-	}
-
-	tr.Proxy = http.ProxyFromEnvironment
-	if config.HttpProxy != "" {
-		proxyUrl, err := url.Parse(config.HttpProxy)
-		if err == nil {
-			tr.Proxy = http.ProxyURL(proxyUrl)
-		}
-	}
-	retryClient := retryablehttp.NewClient()
-	retryClient.RetryMax = config.RequestRetry
-
-	client := retryClient.StandardClient()
-	client.Transport = tr
-	resp, err := client.Do(req)
-	if err != nil {
-		logrus.Errorf("http request error:%s", err.Error())
-		if err, ok := err.(net.Error); ok && err.Timeout() {
-			setLastFailTime(time.Now().Unix())
-		}
-		return false, nil, err
-	}
-	setLastFailTime(0)
-	defer resp.Body.Close()
-
-	headers := map[string]string{}
-	for k, v := range resp.Header {
-		if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
-			headers[k] = v[0]
-		}
-	}
-
-	switch resp.StatusCode {
-	case http.StatusOK:
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return false, nil, err
-		}
-
-		r := Response{
-			StatusCode: resp.StatusCode,
-			Body:       body,
-			Headers:    headers,
-		}
-		if config.Cache {
-			cache.Set(path, r)
-		}
-
-		return false, &r, nil
-	default:
-		r := Response{
-			StatusCode: resp.StatusCode,
-			Headers:    headers,
-		}
-		if config.Cache {
-			cache.SetWithTTL(path, r, time.Duration(config.NegativeCacheTTL)*time.Second)
-		}
-		return false, &r, nil
-	}
-}
-
-func requestURL(requestPath, query string, config *cache_stnsd.Config) (*url.URL, error) {
-	u, err := url.Parse(config.ApiEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, requestPath)
-	u.RawQuery = query
-	return u, nil
-
-}
-
-func prefetchUserOrGroup(resource string, ug interface{}, config *cache_stnsd.Config, cache *ttlcache.Cache) error {
-	u, err := requestURL(resource, "", config)
-	if err != nil {
-		return err
-	}
-
-	_, resp, err := httpRequest(u.String(), config, cache)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == http.StatusOK {
-		userGroups := []model.UserGroup{}
-
-		switch v := ug.(type) {
-		case []*model.User:
-			if err := json.Unmarshal(resp.Body, &v); err != nil {
-				return err
-			}
-
-			for _, u := range v {
-				userGroups = append(userGroups, u)
-			}
-		case []*model.Group:
-			if err := json.Unmarshal(resp.Body, &v); err != nil {
-				return err
-			}
-			for _, u := range v {
-				userGroups = append(userGroups, u)
-			}
-		default:
-			return fmt.Errorf("unknown type: %v", reflect.TypeOf(ug))
-		}
-
-		for _, val := range userGroups {
-			j, err := json.Marshal(val)
-			if err != nil {
-				return err
-			}
-
-			j = []byte("[" + string(j) + "]")
-
-			u, err := requestURL(resource, fmt.Sprintf("name=%s", val.GetName()), config)
-			if err != nil {
-				return err
-			}
-
-			logrus.Debugf("prefetch: set cache key:%s", u.String())
-			cache.Set(u.String(),
-				Response{
-					StatusCode: http.StatusOK,
-					Body:       j,
-					Headers:    resp.Headers,
-				},
-			)
-
-			u, err = requestURL(resource, fmt.Sprintf("id=%d", val.GetID()), config)
-			if err != nil {
-				return err
-			}
-
-			logrus.Debugf("prefetch: set cache key:%s", u.String())
-			cache.Set(u.String(),
-				Response{
-					StatusCode: http.StatusOK,
-					Body:       j,
-					Headers:    resp.Headers,
-				},
-			)
-
-		}
-	}
-	return nil
-}
-
-func prefetchUserGroups(config *cache_stnsd.Config, cache *ttlcache.Cache) {
-	users := []*model.User{}
-	groups := []*model.Group{}
-
-	if err := prefetchUserOrGroup("users", users, config, cache); err != nil {
-		logrus.Error(err)
-	}
-	if err := prefetchUserOrGroup("groups", groups, config, cache); err != nil {
-		logrus.Error(err)
-	}
-
 }
 
 func runServer(config *cache_stnsd.Config) error {
@@ -352,16 +112,21 @@ func runServer(config *cache_stnsd.Config) error {
 	cache := ttlCache(time.Duration(config.CacheTTL) * time.Second)
 	defer cache.Close()
 
+	chttp := cache_stnsd.NewHttp(
+		config,
+		cache,
+		version,
+	)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		u, err := requestURL(r.URL.Path, r.URL.RawQuery, config)
+		u, err := chttp.RequestURL(r.URL.Path, r.URL.RawQuery)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("STNSD-CACHE", "0")
-		isCache, resp, err := httpRequest(u.String(), config, cache)
+		isCache, resp, err := chttp.Request(u.String())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -400,7 +165,7 @@ func runServer(config *cache_stnsd.Config) error {
 				select {
 				case <-t.C:
 					logrus.Info("start prefetch")
-					prefetchUserGroups(config, cache)
+					chttp.PrefetchUserGroups()
 				case <-ctx.Done():
 					return
 				}
@@ -433,47 +198,6 @@ func runServer(config *cache_stnsd.Config) error {
 
 }
 
-func setHeaders(req *http.Request, config *cache_stnsd.Config) {
-	for k, v := range config.HttpHeaders {
-		req.Header.Add(k, v)
-	}
-	req.Header.Set("User-Agent", fmt.Sprintf("cache-stnsd/%s", version))
-}
-
-func setBasicAuth(req *http.Request, config *cache_stnsd.Config) {
-	if config.User != "" && config.Password != "" {
-		req.SetBasicAuth(config.User, config.Password)
-	}
-}
-func tlsConfig(config *cache_stnsd.Config) (*tls.Config, error) {
-	tlsConfig := &tls.Config{InsecureSkipVerify: !config.SSLVerify}
-	if config.TLS.CA != "" {
-		CA_Pool := x509.NewCertPool()
-
-		severCert, err := ioutil.ReadFile(config.TLS.CA)
-		if err != nil {
-			return nil, err
-		}
-		CA_Pool.AppendCertsFromPEM(severCert)
-
-		tlsConfig.RootCAs = CA_Pool
-	}
-
-	if config.TLS.Cert != "" && config.TLS.Key != "" {
-		x509Cert, err := tls.LoadX509KeyPair(config.TLS.Cert, config.TLS.Key)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.Certificates = make([]tls.Certificate, 1)
-		tlsConfig.Certificates[0] = x509Cert
-	}
-
-	if len(tlsConfig.Certificates) == 0 && tlsConfig.RootCAs == nil {
-		tlsConfig = nil
-	}
-
-	return tlsConfig, nil
-}
 func init() {
 	serverCmd.PersistentFlags().StringP("unix-socket", "s", "/var/run/cache-stnsd.sock", "unix domain socket file(Env:STNSD_UNIX_SOCKET)")
 	viper.BindPFlag("UnixSocket", serverCmd.PersistentFlags().Lookup("unix-socket"))

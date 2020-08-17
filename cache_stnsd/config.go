@@ -17,7 +17,7 @@ type Config struct {
 	RequestTimeout   int               `toml:"request_timeout"`
 	RequestRetry     int               `toml:"request_retry"`
 	RequestLocktime  int64             `toml:"request_locktime"`
-	Cache            bool              `toml:"ssl_verify"`
+	Cache            bool              `toml:"cache"`
 	CacheTTL         int               `toml:"cache_ttl"`
 	NegativeCacheTTL int               `toml:"negative_cache_ttl"`
 	HttpHeaders      map[string]string `toml:"http_headers"`

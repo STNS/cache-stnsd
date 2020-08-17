@@ -3,6 +3,8 @@ package cmd
 import (
 	"testing"
 	"time"
+
+	"github.com/STNS/cache-stnsd/cache_stnsd"
 )
 
 func TestEnableCacheWhenServerDown(t *testing.T) {
@@ -10,7 +12,7 @@ func TestEnableCacheWhenServerDown(t *testing.T) {
 	c := ttlCache(500 * time.Millisecond)
 	defer c.Close()
 
-	setLastFailTime(0)
+	cache_stnsd.SetLastFailTime(0)
 
 	c.Set(key, 1)
 	if _, ok := c.Get(key); !ok {
@@ -22,7 +24,7 @@ func TestEnableCacheWhenServerDown(t *testing.T) {
 		t.Fatal("could expire for ttl 1sec")
 	}
 
-	setLastFailTime(1)
+	cache_stnsd.SetLastFailTime(1)
 	c.Set(key, 1)
 	if _, ok := c.Get(key); !ok {
 		t.Fatal("could use cache")
