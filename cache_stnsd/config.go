@@ -22,7 +22,6 @@ type Config struct {
 	NegativeCacheTTL int               `toml:"negative_cache_ttl"`
 	HttpHeaders      map[string]string `toml:"http_headers"`
 	TLS              TLS               `toml:"tls"`
-	UnixSocket       string            `toml:"socket_file"`
 	PIDFile          string            `toml:"-"`
 	LogFile          string            `toml:"-"`
 	LogLevel         string            `toml:"-"`
@@ -30,7 +29,8 @@ type Config struct {
 }
 
 type Cached struct {
-	Prefetch bool `toml:"prefetch"`
+	Prefetch   bool   `toml:"prefetch"`
+	UnixSocket string `toml:"unix_socket"`
 }
 
 type TLS struct {
@@ -48,7 +48,7 @@ func defaultConfig(config *Config) {
 	config.RequestTimeout = 10
 	config.RequestRetry = 3
 	config.RequestLocktime = 60
-	config.UnixSocket = "/var/run/stnsd.sock"
+	config.Cached.UnixSocket = "/var/run/stnsd.sock"
 }
 
 func LoadConfig(filePath string) (*Config, error) {

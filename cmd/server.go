@@ -91,7 +91,7 @@ func ttlCache(ttl time.Duration) *ttlcache.Cache {
 }
 
 func runServer(config *cache_stnsd.Config) error {
-	sf := config.UnixSocket
+	sf := config.Cached.UnixSocket
 	pidfile.SetPidfilePath(config.PIDFile)
 
 	unixListener, err := net.Listen("unix", sf)
@@ -200,7 +200,7 @@ func runServer(config *cache_stnsd.Config) error {
 
 func init() {
 	serverCmd.PersistentFlags().StringP("unix-socket", "s", "/var/run/cache-stnsd.sock", "unix domain socket file(Env:STNSD_UNIX_SOCKET)")
-	viper.BindPFlag("UnixSocket", serverCmd.PersistentFlags().Lookup("unix-socket"))
+	viper.BindPFlag("Cached.UnixSocket", serverCmd.PersistentFlags().Lookup("unix-socket"))
 
 	serverCmd.PersistentFlags().StringP("pid-file", "p", "/var/run/cache-stnsd.pid", "pid file")
 	viper.BindPFlag("PIDFile", serverCmd.PersistentFlags().Lookup("pid-file"))
