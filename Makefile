@@ -92,15 +92,14 @@ rpm: source_for_rpm ## Packaging for RPM
 	cp /root/rpmbuild/RPMS/*/*.rpm /go/src/github.com/STNS/cache-stnsd/builds
 
 .PHONY: pkg
+
+SUPPORTOS=centos6 centos7 cetos8 ubuntu16 ubuntu18 ubuntu20 debian8 debian9
 pkg: ## Create some distribution packages
 	rm -rf builds && mkdir builds
-	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm centos6
-	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm centos7
-	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm centos8
-	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm debian8
-	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm debian9
-	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm ubuntu16
-	docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm ubuntu18
+	for i in $(SUPPORTOS); do\
+	  docker-compose build cache_$$i \
+	  docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm cache_$$i
+	done
 
 .PHONY: source_for_deb
 source_for_deb: ## Create source for DEB
