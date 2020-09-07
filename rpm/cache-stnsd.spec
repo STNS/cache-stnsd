@@ -78,6 +78,8 @@ fi
 %endif
 
 %changelog
+* Mon Sep 7 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.2-1
+- delete execflg systemd file
 * Mon Aug 17 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.1-1
 - change socket file permission 777
 * Thu Aug 13 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.0-1
