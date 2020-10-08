@@ -46,7 +46,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/init.d
 install -m 755 package/cache-stnsd.initd  %{buildroot}%{_sysconfdir}/init.d/cache-stnsd
 %else
 mkdir -p %{buildroot}%{_sysconfdir}/systemd/system/
-install -m 755 package/cache-stnsd.systemd %{buildroot}%{_sysconfdir}/systemd/system/cache-stnsd.service
+install -m 644 package/cache-stnsd.systemd %{buildroot}%{_sysconfdir}/systemd/system/cache-stnsd.service
 %endif
 
 mkdir -p %{buildroot}%{_sysconfdir}/logrotate.d
