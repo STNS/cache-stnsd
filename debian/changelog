@@ -1,3 +1,8 @@
+cache-stnsd (0.3.3-1) xenial; urgency=medium
+
+  * Set permissions (644) for systemd service file on CentOS.(#6)
+
+ -- pyama86 <www.kazu.com@gmail.com>  Fri, 8 Oct 2020 16:00:00 +0900
 cache-stnsd (0.3.2-1) xenial; urgency=medium
 
   * delete execflg systemd file
