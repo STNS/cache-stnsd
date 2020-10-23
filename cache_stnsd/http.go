@@ -177,6 +177,10 @@ func (h *Http) setHeaders(req *http.Request) {
 	for k, v := range h.config.HttpHeaders {
 		req.Header.Add(k, v)
 	}
+
+	if h.config.AuthToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("token %s", h.config.AuthToken))
+	}
 	req.Header.Set("User-Agent", fmt.Sprintf("cache-stnsd/%s", h.version))
 }
 
