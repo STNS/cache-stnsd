@@ -119,9 +119,7 @@ func (h *Http) Request(path string) (bool, *Response, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Errorf("http request error:%s", err.Error())
-		if err, ok := err.(net.Error); ok && err.Timeout() {
-			SetLastFailTime(time.Now().Unix())
-		}
+		SetLastFailTime(time.Now().Unix())
 		return false, nil, err
 	}
 	SetLastFailTime(0)
