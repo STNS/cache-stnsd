@@ -1,6 +1,6 @@
 Summary: Caching response from stns server.
 Name:             cache-stnsd
-Version:          0.3.3
+Version:          0.3.4
 Release:          1
 License:          GPLv3
 URL:              https://github.com/STNS/cache-stnsd
@@ -78,6 +78,9 @@ fi
 %endif
 
 %changelog
+* Fri Oct 23 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.4-1
+* Add AuthToken Authenticatin
+* keep cache when error happened
 * Fri Oct 8 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.3-1
 - Set permissions (644) for systemd service file on CentOS.(#6)
 * Mon Sep 7 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.2-1
