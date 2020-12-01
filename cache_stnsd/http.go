@@ -58,7 +58,7 @@ func NewHttp(config *Config, cache *ttlcache.Cache, version string) *Http {
 	}
 }
 
-func (h *Http) Request(path string) (bool, *Response, error) {
+func (h *Http) Request(path string, forceRequest bool) (bool, *Response, error) {
 	supportHeaders := []string{
 		"user-highest-id",
 		"user-lowest-id",
@@ -66,7 +66,7 @@ func (h *Http) Request(path string) (bool, *Response, error) {
 		"group-lowest-id",
 	}
 
-	if h.config.Cache {
+	if h.config.Cache && !forceRequest {
 		body, found := h.cache.Get(path)
 		if found {
 			switch v := body.(type) {
@@ -122,6 +122,12 @@ func (h *Http) Request(path string) (bool, *Response, error) {
 		SetLastFailTime(time.Now().Unix())
 		return false, nil, err
 	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
+		SetLastFailTime(time.Now().Unix())
+		return false, nil, fmt.Errorf("error status: %d", resp.StatusCode)
+	}
+
 	SetLastFailTime(0)
 	defer resp.Body.Close()
 
@@ -226,7 +232,7 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 		return err
 	}
 
-	_, resp, err := h.Request(u.String())
+	_, resp, err := h.Request(u.String(), true)
 	if err != nil {
 		return err
 	}
