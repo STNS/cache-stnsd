@@ -35,7 +35,7 @@ release:
 
 .PHONY: bump
 bump:
-	git semv minor --bump
+	git semv patch --bump
 	git tag | tail -n1 | sed 's/v//g' > version
 
 .PHONY: releasedeps

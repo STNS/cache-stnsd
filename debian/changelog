@@ -1,3 +1,8 @@
+cache-stnsd (0.3.5-1) xenial; urgency=medium
+
+  * prefetch interval modify to half cache ttl
+
+ -- pyama86 <www.kazu.com@gmail.com>  Tue, 1 Dec 2020 00:00:00 +0900
 cache-stnsd (0.3.4-1) xenial; urgency=medium
 
   * Add AuthToken Authenticatin

@@ -1,6 +1,6 @@
 Summary: Caching response from stns server.
 Name:             cache-stnsd
-Version:          0.3.4
+Version:          0.3.5
 Release:          1
 License:          GPLv3
 URL:              https://github.com/STNS/cache-stnsd
@@ -78,6 +78,8 @@ fi
 %endif
 
 %changelog
+* Tue Dec 1 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.5-1
+- prefetch interval modify to half cache ttl
 * Fri Oct 23 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.4-1
 - Add AuthToken Authenticatin
 - keep cache when error happened
