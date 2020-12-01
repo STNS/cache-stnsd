@@ -130,7 +130,7 @@ func runServer(config *cache_stnsd.Config) error {
 		}
 
 		w.Header().Set("STNSD-CACHE", "0")
-		isCache, resp, err := chttp.Request(u.String())
+		isCache, resp, err := chttp.Request(u.String(), false)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -161,7 +161,7 @@ func runServer(config *cache_stnsd.Config) error {
 
 	if config.Cache && config.Cached.Prefetch {
 		go func() {
-			t := time.NewTicker(time.Duration(config.CacheTTL) * time.Second)
+			t := time.NewTicker(time.Duration(config.CacheTTL/2) * time.Second)
 			defer func() {
 				t.Stop()
 			}()
