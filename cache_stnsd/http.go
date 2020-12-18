@@ -1,24 +1,31 @@
 package cache_stnsd
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
 	"reflect"
+	"strings"
+	"sync"
 	"time"
 
-	"github.com/ReneKroon/ttlcache/v2"
+	"github.com/ReneKroon/ttlcache"
 	"github.com/STNS/STNS/v2/model"
-	"github.com/STNS/libstns-go/libstns"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type Http struct {
 	config  *Config
 	cache   *ttlcache.Cache
-	client  *libstns.STNS
 	version string
 }
 
@@ -28,78 +35,208 @@ type Response struct {
 	Body       []byte
 }
 
-func SetExpirationCallback(client *libstns.STNS, cache *ttlcache.Cache) {
-	cache.SetCheckExpirationCallback(
-		func(key string, value interface{}) bool {
-			res, _ := client.Request("status", "")
-			return res.StatusCode == http.StatusOK
-		},
-	)
+var lastFailTime int64
+var m sync.Mutex
 
+func SetLastFailTime(n int64) {
+	m.Lock()
+	defer m.Unlock()
+	lastFailTime = n
 }
-func NewHttp(config *Config, cache *ttlcache.Cache, version string) (*Http, error) {
-	client, err := libstns.NewSTNS(config.ApiEndpoint, &libstns.Options{
-		AuthToken:      config.AuthToken,
-		User:           config.User,
-		Password:       config.Password,
-		SkipSSLVerify:  config.SSLVerify,
-		HttpProxy:      config.HttpProxy,
-		RequestTimeout: config.RequestTimeout,
-		RequestRetry:   config.RequestRetry,
-		HttpHeaders:    config.HttpHeaders,
-		TLS:            config.TLS,
-	})
-	SetExpirationCallback(client, cache)
-	if err != nil {
-		return nil, err
-	}
 
+func GetLastFailTime() int64 {
+	m.Lock()
+	defer m.Unlock()
+	return lastFailTime
+}
+
+func NewHttp(config *Config, cache *ttlcache.Cache, version string) *Http {
 	return &Http{
 		config:  config,
 		cache:   cache,
-		client:  client,
 		version: version,
-	}, nil
+	}
 }
 
-func (h *Http) Request(path, query string) (bool, *libstns.Response, error) {
-	if h.config.Cache {
+func (h *Http) Request(path string, forceRequest bool) (bool, *Response, error) {
+	supportHeaders := []string{
+		"user-highest-id",
+		"user-lowest-id",
+		"group-highest-id",
+		"group-lowest-id",
+	}
+
+	if h.config.Cache && !forceRequest {
 		body, found := h.cache.Get(path)
-		if found == nil {
+		if found {
 			switch v := body.(type) {
-			case *libstns.Response:
+			case Response:
 				logrus.Debugf("response from cache:%s", path)
-				return true, v, nil
+				return true, &v, nil
 			}
 		}
 	}
 
-	res, err := h.client.Request(path, query)
-	if err != nil && res == nil {
+	lastFailTime := GetLastFailTime()
+	if lastFailTime != 0 && lastFailTime+h.config.RequestLocktime > time.Now().Unix() {
+		return false, nil, errors.New("now request locking")
+	}
+
+	req, err := http.NewRequest("GET", path, nil)
+	if err != nil {
 		logrus.Errorf("make http request error:%s", err.Error())
 		return false, nil, err
 	}
 
-	switch res.StatusCode {
+	h.setHeaders(req)
+	h.setBasicAuth(req)
+
+	tc, err := h.tlsConfig()
+	if err != nil {
+		logrus.Errorf("make tls config error:%s", err.Error())
+		return false, nil, err
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: tc,
+		Dial: (&net.Dialer{
+			Timeout: time.Duration(h.config.RequestTimeout) * time.Second,
+		}).Dial,
+	}
+
+	tr.Proxy = http.ProxyFromEnvironment
+	if h.config.HttpProxy != "" {
+		proxyUrl, err := url.Parse(h.config.HttpProxy)
+		if err == nil {
+			tr.Proxy = http.ProxyURL(proxyUrl)
+		}
+	}
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = h.config.RequestRetry
+
+	client := retryClient.StandardClient()
+	client.Transport = tr
+	resp, err := client.Do(req)
+	if err != nil {
+		logrus.Errorf("http request error:%s", err.Error())
+		SetLastFailTime(time.Now().Unix())
+		return false, nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
+		SetLastFailTime(time.Now().Unix())
+		return false, nil, fmt.Errorf("error status: %d", resp.StatusCode)
+	}
+
+	SetLastFailTime(0)
+	defer resp.Body.Close()
+
+	headers := map[string]string{}
+	for k, v := range resp.Header {
+		if funk.ContainsString(supportHeaders, strings.ToLower(k)) {
+			headers[k] = v[0]
+		}
+	}
+
+	switch resp.StatusCode {
 	case http.StatusOK:
-		if h.config.Cache {
-			h.cache.Set(path, res)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return false, nil, err
 		}
 
-		return false, res, nil
-	default:
-		if h.config.Cache {
-			h.cache.SetWithTTL(path, res, time.Duration(h.config.NegativeCacheTTL)*time.Second)
+		r := Response{
+			StatusCode: resp.StatusCode,
+			Body:       body,
+			Headers:    headers,
 		}
-		return false, res, nil
+		if h.config.Cache {
+			h.cache.Set(path, r)
+		}
+
+		return false, &r, nil
+	default:
+		r := Response{
+			StatusCode: resp.StatusCode,
+			Headers:    headers,
+		}
+		if h.config.Cache {
+			h.cache.SetWithTTL(path, r, time.Duration(h.config.NegativeCacheTTL)*time.Second)
+		}
+		return false, &r, nil
 	}
 }
 
+func (h *Http) RequestURL(requestPath, query string) (*url.URL, error) {
+	u, err := url.Parse(h.config.ApiEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, requestPath)
+	u.RawQuery = query
+	return u, nil
+
+}
+
+func (h *Http) setHeaders(req *http.Request) {
+	for k, v := range h.config.HttpHeaders {
+		req.Header.Add(k, v)
+	}
+
+	if h.config.AuthToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("token %s", h.config.AuthToken))
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("cache-stnsd/%s", h.version))
+}
+
+func (h *Http) setBasicAuth(req *http.Request) {
+	if h.config.User != "" && h.config.Password != "" {
+		req.SetBasicAuth(h.config.User, h.config.Password)
+	}
+}
+
+func (h *Http) tlsConfig() (*tls.Config, error) {
+	tlsConfig := &tls.Config{InsecureSkipVerify: !h.config.SSLVerify}
+	if h.config.TLS.CA != "" {
+		CA_Pool := x509.NewCertPool()
+
+		severCert, err := ioutil.ReadFile(h.config.TLS.CA)
+		if err != nil {
+			return nil, err
+		}
+		CA_Pool.AppendCertsFromPEM(severCert)
+
+		tlsConfig.RootCAs = CA_Pool
+	}
+
+	if h.config.TLS.Cert != "" && h.config.TLS.Key != "" {
+		x509Cert, err := tls.LoadX509KeyPair(h.config.TLS.Cert, h.config.TLS.Key)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = make([]tls.Certificate, 1)
+		tlsConfig.Certificates[0] = x509Cert
+	}
+
+	if len(tlsConfig.Certificates) == 0 && tlsConfig.RootCAs == nil {
+		tlsConfig = nil
+	}
+
+	return tlsConfig, nil
+}
+
 func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
-	resp, err := h.client.Request(resource, "")
-	if err != nil && resp == nil {
+	u, err := h.RequestURL(resource, "")
+	if err != nil {
 		return err
 	}
+
+	_, resp, err := h.Request(u.String(), true)
+	if err != nil {
+		return err
+	}
+
 	if resp.StatusCode == http.StatusOK {
 		userGroups := []model.UserGroup{}
 
@@ -131,7 +268,7 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 
 			j = []byte("[" + string(j) + "]")
 
-			u, err := requestURL(h.config.ApiEndpoint, resource, fmt.Sprintf("name=%s", val.GetName()))
+			u, err := h.RequestURL(resource, fmt.Sprintf("name=%s", val.GetName()))
 			if err != nil {
 				return err
 			}
@@ -145,7 +282,7 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 				},
 			)
 
-			u, err = requestURL(h.config.ApiEndpoint, resource, fmt.Sprintf("id=%d", val.GetID()))
+			u, err = h.RequestURL(resource, fmt.Sprintf("id=%d", val.GetID()))
 			if err != nil {
 				return err
 			}
@@ -174,17 +311,5 @@ func (h *Http) PrefetchUserGroups() {
 	if err := h.prefetchUserOrGroup("groups", groups); err != nil {
 		logrus.Error(err)
 	}
-
-}
-
-func requestURL(apiEndpoint, requestPath, query string) (*url.URL, error) {
-	u, err := url.Parse(apiEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, requestPath)
-	u.RawQuery = query
-	return u, nil
 
 }

@@ -17,8 +17,6 @@ package cache_stnsd
 import (
 	"reflect"
 	"testing"
-
-	"github.com/STNS/libstns-go/libstns"
 )
 
 func Test_LoadConfig(t *testing.T) {
@@ -53,7 +51,7 @@ func Test_LoadConfig(t *testing.T) {
 				HttpHeaders: map[string]string{
 					"X-API-TOKEN": "token",
 				},
-				TLS: libstns.TLS{
+				TLS: TLS{
 					CA:   "ca_cert",
 					Cert: "example_cert",
 					Key:  "example_key",
@@ -84,7 +82,7 @@ func Test_LoadConfig(t *testing.T) {
 				CacheTTL:         600,
 				NegativeCacheTTL: 60,
 				HttpHeaders:      nil,
-				TLS: libstns.TLS{
+				TLS: TLS{
 					CA:   "",
 					Cert: "",
 					Key:  "",

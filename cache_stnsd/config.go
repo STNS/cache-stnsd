@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/STNS/libstns-go/libstns"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,7 +21,7 @@ type Config struct {
 	CacheTTL         int               `toml:"cache_ttl"`
 	NegativeCacheTTL int               `toml:"negative_cache_ttl"`
 	HttpHeaders      map[string]string `toml:"http_headers"`
-	TLS              libstns.TLS       `toml:"tls"`
+	TLS              TLS               `toml:"tls"`
 	PIDFile          string            `toml:"-"`
 	LogFile          string            `toml:"-"`
 	LogLevel         string            `toml:"-"`
@@ -32,6 +31,12 @@ type Config struct {
 type Cached struct {
 	Prefetch   bool   `toml:"prefetch"`
 	UnixSocket string `toml:"unix_socket"`
+}
+
+type TLS struct {
+	CA   string `toml:"ca"`
+	Cert string `toml:"cert"`
+	Key  string `toml:"key"`
 }
 
 func defaultConfig(config *Config) {

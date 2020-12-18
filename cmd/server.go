@@ -24,7 +24,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ReneKroon/ttlcache/v2"
+	"github.com/ReneKroon/ttlcache"
 	"github.com/STNS/cache-stnsd/cache_stnsd"
 	"github.com/facebookgo/pidfile"
 
@@ -77,10 +77,16 @@ you can set runing config to /etc/stns/client/stns.conf.
 	},
 }
 
-func ttlCache(config *cache_stnsd.Config) *ttlcache.Cache {
+func ttlCache(ttl time.Duration) *ttlcache.Cache {
 	c := ttlcache.NewCache()
-	c.SetTTL(time.Duration(config.CacheTTL) * time.Second)
-	c.SkipTTLExtensionOnHit(true)
+	c.SetTTL(ttl)
+	c.SkipTtlExtensionOnHit(true)
+	// cache to expire when network is ok.
+	c.SetCheckExpirationCallback(
+		func(key string, value interface{}) bool {
+			return cache_stnsd.GetLastFailTime() == 0
+		},
+	)
 	return c
 }
 
@@ -107,21 +113,24 @@ func runServer(config *cache_stnsd.Config) error {
 		}
 	}()
 
-	cache := ttlCache(config)
+	cache := ttlCache(time.Duration(config.CacheTTL) * time.Second)
 	defer cache.Close()
 
-	chttp, err := cache_stnsd.NewHttp(
+	chttp := cache_stnsd.NewHttp(
 		config,
 		cache,
 		version,
 	)
-	if err != nil {
-		return err
-	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		u, err := chttp.RequestURL(r.URL.Path, r.URL.RawQuery)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("STNSD-CACHE", "0")
-		isCache, resp, err := chttp.Request(r.URL.Path, r.URL.RawQuery)
+		isCache, resp, err := chttp.Request(u.String(), false)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
