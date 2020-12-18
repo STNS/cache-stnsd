@@ -4,8 +4,9 @@ go 1.14
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/ReneKroon/ttlcache v1.7.0
-	github.com/STNS/STNS/v2 v2.2.7
+	github.com/ReneKroon/ttlcache/v2 v2.1.0
+	github.com/STNS/STNS/v2 v2.2.8
+	github.com/STNS/libstns-go v0.1.1
 	github.com/Songmu/retry v0.1.0
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/facebookgo/pidfile v0.0.0-20150612191647-f242e2999868
@@ -19,7 +20,7 @@ require (
 	github.com/lxc/lxd v0.0.0-20200711014005-e4f84baabff7
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pyama86/go-cache v0.0.0-20160619073142-5c290c8c42f4
-	github.com/sirupsen/logrus v1.2.0
+	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
 	github.com/thoas/go-funk v0.7.0
