@@ -9,6 +9,7 @@ services:
     volumes:
       - .:/go/src/github.com/STNS/cache-stnsd
       - ~/pkg:/go/pkg
+      - ~/src:/go/src
     environment:
       DIST: el8
     command: make rpm
@@ -21,6 +22,7 @@ services:
     volumes:
       - .:/go/src/github.com/STNS/cache-stnsd
       - ~/pkg:/go/pkg
+      - ~/src:/go/src
     environment:
       DIST: el7
     command: make rpm
@@ -33,6 +35,7 @@ services:
     volumes:
       - .:/go/src/github.com/STNS/cache-stnsd
       - ~/pkg:/go/pkg
+      - ~/src:/go/src
     environment:
       DIST: el6
     command: make rpm
@@ -45,6 +48,7 @@ services:
     volumes:
       - .:/go/src/github.com/STNS/cache-stnsd
       - ~/pkg:/go/pkg
+      - ~/src:/go/src
     environment:
       DIST: xenial
     command: make deb
@@ -57,6 +61,7 @@ services:
     volumes:
       - .:/go/src/github.com/STNS/cache-stnsd
       - ~/pkg:/go/pkg
+      - ~/src:/go/src
     environment:
       DIST: bionic
     command: make deb
@@ -69,6 +74,7 @@ services:
     volumes:
       - .:/go/src/github.com/STNS/cache-stnsd
       - ~/pkg:/go/pkg
+      - ~/src:/go/src
     environment:
       DIST: focal
     command: make deb
@@ -81,6 +87,7 @@ services:
     volumes:
       - .:/go/src/github.com/STNS/cache-stnsd
       - ~/pkg:/go/pkg
+      - ~/src:/go/src
     environment:
       DIST: jessie
     command: make deb
@@ -93,6 +100,7 @@ services:
     volumes:
       - .:/go/src/github.com/STNS/cache-stnsd
       - ~/pkg:/go/pkg
+      - ~/src:/go/src
     environment:
       DIST: stretch
     command: make deb
