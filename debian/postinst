@@ -20,7 +20,7 @@ set -e
 if [ `which service` ]; then
   ! test -e  /etc/stns/client/stns.conf || service cache-stnsd start
 elif [ `which systemctl` ]; then
-  ! test -e /etc/stns/client/stns.conf || systemctl start cache-stnsd
+  ! test -e /etc/stns/client/stns.conf || (systemctl daemon-reload && systemctl start cache-stnsd)
 fi
 
 case "$1" in
@@ -29,6 +29,13 @@ case "$1" in
       update-rc.d cache-stnsd enable >/dev/null 2>&1
     ;;
 
+    upgrade)
+      if [ `which service` ]; then
+        ! test -e  /etc/stns/client/stns.conf || service cache-stnsd restart
+      elif [ `which systemctl` ]; then
+        ! test -e /etc/stns/client/stns.conf || (systemctl daemon-reload && systemctl restart cache-stnsd)
+      fi
+    ;;
     abort-upgrade|abort-remove|abort-deconfigure)
     ;;
 
