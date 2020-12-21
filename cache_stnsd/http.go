@@ -63,13 +63,17 @@ func NewHttp(config *Config, cache *ttlcache.Cache, version string) (*Http, erro
 }
 
 func (h *Http) Request(path, query string) (bool, *libstns.Response, error) {
+	cacheKey, err := h.cacheKey(path, query)
+	if err != nil {
+		return false, nil, err
+	}
 	if h.config.Cache {
-		body, found := h.cache.Get(path)
+		body, found := h.cache.Get(cacheKey)
 		if found == nil {
 			switch v := body.(type) {
-			case *libstns.Response:
+			case libstns.Response:
 				logrus.Debugf("response from cache:%s", path)
-				return true, v, nil
+				return true, &v, nil
 			}
 		}
 	}
@@ -83,13 +87,13 @@ func (h *Http) Request(path, query string) (bool, *libstns.Response, error) {
 	switch res.StatusCode {
 	case http.StatusOK:
 		if h.config.Cache {
-			h.cache.Set(path, res)
+			h.cache.Set(cacheKey, *res)
 		}
 
 		return false, res, nil
 	default:
 		if h.config.Cache {
-			h.cache.SetWithTTL(path, res, time.Duration(h.config.NegativeCacheTTL)*time.Second)
+			h.cache.SetWithTTL(cacheKey, *res, time.Duration(h.config.NegativeCacheTTL)*time.Second)
 		}
 		return false, res, nil
 	}
@@ -131,13 +135,13 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 
 			j = []byte("[" + string(j) + "]")
 
-			u, err := requestURL(h.config.ApiEndpoint, resource, fmt.Sprintf("name=%s", val.GetName()))
+			cacheKey, err := h.cacheKey(resource, fmt.Sprintf("name=%s", val.GetName()))
 			if err != nil {
 				return err
 			}
 
-			logrus.Debugf("prefetch: set cache key:%s", u.String())
-			h.cache.Set(u.String(),
+			logrus.Debugf("prefetch: set cache key:%s", cacheKey)
+			h.cache.Set(cacheKey,
 				Response{
 					StatusCode: http.StatusOK,
 					Body:       j,
@@ -145,13 +149,13 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 				},
 			)
 
-			u, err = requestURL(h.config.ApiEndpoint, resource, fmt.Sprintf("id=%d", val.GetID()))
+			cacheKey, err = h.cacheKey(resource, fmt.Sprintf("id=%d", val.GetID()))
 			if err != nil {
 				return err
 			}
 
-			logrus.Debugf("prefetch: set cache key:%s", u.String())
-			h.cache.Set(u.String(),
+			logrus.Debugf("prefetch: set cache key:%s", cacheKey)
+			h.cache.Set(cacheKey,
 				Response{
 					StatusCode: http.StatusOK,
 					Body:       j,
@@ -177,14 +181,14 @@ func (h *Http) PrefetchUserGroups() {
 
 }
 
-func requestURL(apiEndpoint, requestPath, query string) (*url.URL, error) {
-	u, err := url.Parse(apiEndpoint)
+func (h *Http) cacheKey(requestPath, query string) (string, error) {
+	u, err := url.Parse(h.config.ApiEndpoint)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	u.Path = path.Join(u.Path, requestPath)
 	u.RawQuery = query
-	return u, nil
+	return u.String(), nil
 
 }
