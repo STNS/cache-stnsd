@@ -1,6 +1,6 @@
 Summary: Caching response from stns server.
 Name:             cache-stnsd
-Version:          0.3.7
+Version:          0.3.8
 Release:          1
 License:          GPLv3
 URL:              https://github.com/STNS/cache-stnsd
@@ -78,6 +78,8 @@ fi
 %endif
 
 %changelog
+* Fri Jan 8 2021 pyama86 <www.kazu.com@gmail.com> - 0.3.8-1
+- Force delete sockfile before starting server
 * Mon Dec 21 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.7-1
 - fix cache key
 * Fri Dec 18 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.6-1
