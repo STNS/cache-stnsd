@@ -88,6 +88,13 @@ func runServer(config *cache_stnsd.Config) error {
 	sf := config.Cached.UnixSocket
 	pidfile.SetPidfilePath(config.PIDFile)
 
+	_, err := os.Stat(sf)
+	if os.IsExist(err) {
+		if err := os.Remove(sf); err != nil {
+			return err
+		}
+	}
+
 	unixListener, err := net.Listen("unix", sf)
 	if err != nil {
 		return err
