@@ -1,3 +1,10 @@
+cache-stnsd (0.3.9-1) xenial; urgency=medium
+
+  * I didn't check http error for health check
+  * It isn't right file exist check method.
+  * Systemd has to restart on failure.
+
+ -- pyama86 <www.kazu.com@gmail.com> Mon, 12 Jan 2021 00:00:00 +0900
 cache-stnsd (0.3.8-1) xenial; urgency=medium
 
   * Force delete sockfile before starting server

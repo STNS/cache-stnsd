@@ -1,6 +1,6 @@
 Summary: Caching response from stns server.
 Name:             cache-stnsd
-Version:          0.3.8
+Version:          0.3.9
 Release:          1
 License:          GPLv3
 URL:              https://github.com/STNS/cache-stnsd
@@ -78,6 +78,10 @@ fi
 %endif
 
 %changelog
+* Mon Jan 12 2021 pyama86 <www.kazu.com@gmail.com> - 0.3.9-1
+- I didn't check http error for health check
+- It isn't right file exist check method.
+- Systemd has to restart on failure.
 * Fri Jan 8 2021 pyama86 <www.kazu.com@gmail.com> - 0.3.8-1
 - Force delete sockfile before starting server
 * Mon Dec 21 2020 pyama86 <www.kazu.com@gmail.com> - 0.3.7-1
