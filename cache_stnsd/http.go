@@ -31,7 +31,10 @@ type Response struct {
 func SetExpirationCallback(client *libstns.STNS, cache *ttlcache.Cache) {
 	cache.SetCheckExpirationCallback(
 		func(key string, value interface{}) bool {
-			res, _ := client.Request("status", "")
+			res, err := client.Request("status", "")
+			if err != nil {
+				return false
+			}
 			return res.StatusCode == http.StatusOK
 		},
 	)
