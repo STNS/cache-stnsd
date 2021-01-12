@@ -17,10 +17,10 @@ set -e
 # for details, see https://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-if [ `which service` ]; then
-  ! test -e  /etc/stns/client/stns.conf || service cache-stnsd start
-elif [ `which systemctl` ]; then
+if [ `which systemctl` ]; then
   ! test -e /etc/stns/client/stns.conf || (systemctl daemon-reload && systemctl start cache-stnsd)
+elif [ `which service` ]; then
+  ! test -e  /etc/stns/client/stns.conf || service cache-stnsd start
 fi
 
 case "$1" in
@@ -30,10 +30,10 @@ case "$1" in
     ;;
 
     upgrade)
-      if [ `which service` ]; then
-        ! test -e  /etc/stns/client/stns.conf || service cache-stnsd restart
-      elif [ `which systemctl` ]; then
+      if [ `which systemctl` ]; then
         ! test -e /etc/stns/client/stns.conf || (systemctl daemon-reload && systemctl restart cache-stnsd)
+      elif [ `which service` ]; then
+        ! test -e  /etc/stns/client/stns.conf || service cache-stnsd restart
       fi
     ;;
     abort-upgrade|abort-remove|abort-deconfigure)
