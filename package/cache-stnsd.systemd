@@ -6,6 +6,7 @@ After=syslog.target network.target
 Type=simple
 PIDFile=/var/run/cache-stnsd.pid
 ExecStart=/usr/sbin/cache-stnsd server --log-file /var/log/cache-stnsd.log
+Restart=on-failure
 
 KillSignal=SIGINT
 Restart=always
