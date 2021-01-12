@@ -83,13 +83,16 @@ func ttlCache(config *cache_stnsd.Config) *ttlcache.Cache {
 	c.SkipTTLExtensionOnHit(true)
 	return c
 }
+func Exists(name string) bool {
+	_, err := os.Stat(name)
+	return !os.IsNotExist(err)
+}
 
 func runServer(config *cache_stnsd.Config) error {
 	sf := config.Cached.UnixSocket
 	pidfile.SetPidfilePath(config.PIDFile)
 
-	_, err := os.Stat(sf)
-	if os.IsExist(err) {
+	if Exists(sf) {
 		if err := os.Remove(sf); err != nil {
 			return err
 		}
