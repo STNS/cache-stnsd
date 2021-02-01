@@ -1,3 +1,7 @@
+cache-stnsd (0.3.10-1) xenial; urgency=medium
+  * Reuse TCP Connection
+
+ -- pyama86 <www.kazu.com@gmail.com> Mon, 1 Feb 2021 00:00:00 +0900
 cache-stnsd (0.3.9-1) xenial; urgency=medium
 
   * I didn't check http error for health check

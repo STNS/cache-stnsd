@@ -1,6 +1,6 @@
 Summary: Caching response from stns server.
 Name:             cache-stnsd
-Version:          0.3.9
+Version:          0.3.10
 Release:          1
 License:          GPLv3
 URL:              https://github.com/STNS/cache-stnsd
@@ -78,6 +78,8 @@ fi
 %endif
 
 %changelog
+* Mon Feb 1 2021 pyama86 <www.kazu.com@gmail.com> - 0.3.10-1
+- Reuse TLS Connection
 * Mon Jan 12 2021 pyama86 <www.kazu.com@gmail.com> - 0.3.9-1
 - I didn't check http error for health check
 - It isn't right file exist check method.

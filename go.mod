@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/ReneKroon/ttlcache/v2 v2.1.0
 	github.com/STNS/STNS/v2 v2.2.8
-	github.com/STNS/libstns-go v0.1.1
+	github.com/STNS/libstns-go v0.2.0
 	github.com/Songmu/retry v0.1.0
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/facebookgo/pidfile v0.0.0-20150612191647-f242e2999868

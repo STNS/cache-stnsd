@@ -28,6 +28,8 @@ github.com/STNS/libstns-go v0.0.0-20201107053941-5ee628bafc45 h1:qBHL8/V+IAJbK0q
 github.com/STNS/libstns-go v0.0.0-20201107053941-5ee628bafc45/go.mod h1:fpbGLIQ7k6KOTseXrqOigZEZr5amMI6t1Q/hU1nVi9c=
 github.com/STNS/libstns-go v0.1.1 h1:TZOoGlJtrn74rM9tr/zhVs/cINOEts7emX6WS9L7DfA=
 github.com/STNS/libstns-go v0.1.1/go.mod h1:fpbGLIQ7k6KOTseXrqOigZEZr5amMI6t1Q/hU1nVi9c=
+github.com/STNS/libstns-go v0.2.0 h1:0xAkS75/C/6w8fimdTzxdNHvBhsFH/bfThEoWCUgmMk=
+github.com/STNS/libstns-go v0.2.0/go.mod h1:fpbGLIQ7k6KOTseXrqOigZEZr5amMI6t1Q/hU1nVi9c=
 github.com/Songmu/retry v0.1.0 h1:hPA5xybQsksLR/ry/+t/7cFajPW+dqjmjhzZhioBILA=
 github.com/Songmu/retry v0.1.0/go.mod h1:7sXIW7eseB9fq0FUvigRcQMVLR9tuHI0Scok+rkpAuA=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
