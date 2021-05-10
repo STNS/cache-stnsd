@@ -21,7 +21,7 @@ UNAME_S := $(shell uname -s)
 .PHONY: build
 ## build: build the nke
 build:
-	$(GO) build -o $(BUILD)/cache-stnsd -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION)"
+	$(GO) build -o $(BUILD)/cache-stnsd -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION) -s -w"
 
 .PHONY: install
 install: build ## Install
@@ -59,9 +59,9 @@ test:
 	$(GO) test -race $(TEST)
 
 .PHONY: run
-run:
+run: build
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Runing$(RESET)"
-	$(GO) run main.go -c $(TESTCONFIG) -p /tmp/cache-stnsd.pid -l /tmp/cache-stnsd.log server -s /tmp/cache-stnsd.sock
+	tmp/bin/cache-stnsd -c $(TESTCONFIG) -p /tmp/cache-stnsd.pid -l /tmp/cache-stnsd.log server -s /tmp/cache-stnsd.sock --log-level debug
 
 .PHONY: integration
 integration: ## Run integration test after Server wakeup
