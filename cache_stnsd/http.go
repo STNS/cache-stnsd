@@ -136,7 +136,8 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 				return err
 			}
 
-			j = []byte("[" + string(j) + "]")
+			j = append([]byte(`[`), j...)
+			j = append(j, []byte(`]`)...)
 
 			cacheKey, err := h.cacheKey(resource, fmt.Sprintf("name=%s", val.GetName()))
 			if err != nil {
