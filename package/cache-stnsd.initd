@@ -21,6 +21,7 @@ prog="cache-stnsd"
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
 BIN=${BIN:="/usr/sbin/$prog"}
+OTHER_OPTS=${OTHER_OPTS:="-p /var/run/cache-stnsd.pid"}
 LOGFILE=${LOGFILE:="/var/log/$prog.log"}
 PIDFILE=${PIDFILE:="/var/run/$prog.pid"}
 
@@ -41,7 +42,7 @@ start() {
 
     echo -n $"Starting $prog:"
 
-    $BIN $OTHER_OPTS server >> $LOGFILE 2>&1 &
+    $BIN $OTHER_OPTS server -s /var/run/cache-stnsd.sock >> $LOGFILE 2>&1 &
     sleep 1
     if ! kill -0 $(cat $PIDFILE 2>/dev/null) >/dev/null 2>&1; then
         failure
