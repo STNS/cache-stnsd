@@ -125,6 +125,7 @@ deb: source_for_deb ## Packaging for DEB
 		debuild -uc -us
 	cd tmp.$(DIST) && \
 		find . -name "*.deb" | sed -e 's/\(\(.*cache-stnsd.*\).deb\)/mv \1 \2.$(DIST).deb/g' | sh && \
+		mkdir -p $(GOPATH)/src/github.com/STNS/cache-stnsd/builds && \
 		cp *.deb $(GOPATH)/src/github.com/STNS/cache-stnsd/builds
 	rm -rf tmp.$(DIST)
 
