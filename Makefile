@@ -93,7 +93,7 @@ rpm: source_for_rpm ## Packaging for RPM
 
 .PHONY: pkg
 
-SUPPORTOS=centos6 centos7 centos8 ubuntu16 ubuntu18 ubuntu20 debian8 debian9
+SUPPORTOS=centos6 centos7 centos8 ubuntu16 ubuntu18 ubuntu20 debian8 debian9 debian10 debian11
 pkg: ## Create some distribution packages
 	rm -rf builds && mkdir builds
 	for i in $(SUPPORTOS); do \
@@ -125,6 +125,7 @@ deb: source_for_deb ## Packaging for DEB
 		debuild -uc -us
 	cd tmp.$(DIST) && \
 		find . -name "*.deb" | sed -e 's/\(\(.*cache-stnsd.*\).deb\)/mv \1 \2.$(DIST).deb/g' | sh && \
+		mkdir -p $(GOPATH)/src/github.com/STNS/cache-stnsd/builds && \
 		cp *.deb $(GOPATH)/src/github.com/STNS/cache-stnsd/builds
 	rm -rf tmp.$(DIST)
 
