@@ -26,19 +26,6 @@ services:
     environment:
       DIST: el7
     command: make rpm
-  cache_centos6:
-    build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.centos-6
-      args:
-        GO_VERSION: 1.17.2
-    volumes:
-      - .:/go/src/github.com/STNS/cache-stnsd
-      - ~/pkg:/go/pkg
-      - ~/src:/go/src
-    environment:
-      DIST: el6
-    command: make rpm
   cache_ubuntu16:
     build:
       context: .
