@@ -78,7 +78,7 @@ fi
 %endif
 
 %changelog
-* Tur Mar 17 2022 pyama86 <www.kazu.com@gmail.com> - 0.3.13-1
+* Thu Mar 17 2022 pyama86 <www.kazu.com@gmail.com> - 0.3.13-1
 - support disable keepalive
 * Mon May 10 2021 pyama86 <www.kazu.com@gmail.com> - 0.3.12-1
 - fix memory leak
