@@ -15,6 +15,7 @@ type Config struct {
 	Password         string            `toml:"password"`
 	SSLVerify        bool              `toml:"ssl_verify"`
 	HttpProxy        string            `toml:"http_proxy"`
+	HttpKeepalive    bool              `toml:"http_keepalive"`
 	RequestTimeout   int               `toml:"request_timeout"`
 	RequestRetry     int               `toml:"request_retry"`
 	RequestLocktime  int64             `toml:"request_locktime"`
@@ -40,6 +41,7 @@ func defaultConfig(config *Config) {
 	config.NegativeCacheTTL = 60
 	config.SSLVerify = true
 	config.Cache = true
+	config.HttpKeepalive = true
 	config.RequestTimeout = 10
 	config.RequestRetry = 3
 	config.RequestLocktime = 60
