@@ -62,6 +62,7 @@ func Test_LoadConfig(t *testing.T) {
 					UnixSocket: "/var/run/stnsd.sock",
 					Prefetch:   true,
 				},
+				HttpKeepalive: false,
 			},
 		},
 		{
@@ -92,6 +93,7 @@ func Test_LoadConfig(t *testing.T) {
 				Cached: Cached{
 					UnixSocket: "/var/run/stnsd.sock",
 				},
+				HttpKeepalive: true,
 			},
 		},
 	}
