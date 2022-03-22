@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/ReneKroon/ttlcache/v2 v2.1.0
 	github.com/STNS/STNS/v2 v2.2.8
-	github.com/STNS/libstns-go v0.3.0
+	github.com/STNS/libstns-go v0.4.0
 	github.com/facebookgo/pidfile v0.0.0-20150612191647-f242e2999868
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/lib/pq v1.8.0
