@@ -21,7 +21,7 @@ UNAME_S := $(shell uname -s)
 .PHONY: build
 ## build: build the nke
 build:
-	$(GO) build -o $(BUILD)/cache-stnsd -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION) -s -w"
+	$(GO) build -o $(BUILD)/cache-stnsd -buildvcs=false -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION) -s -w"
 
 .PHONY: install
 install: build ## Install
