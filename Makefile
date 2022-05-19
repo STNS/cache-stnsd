@@ -21,7 +21,7 @@ UNAME_S := $(shell uname -s)
 .PHONY: build
 ## build: build the nke
 build:
-	$(GO) build -o $(BUILD)/cache-stnsd -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION) -s -w"
+	$(GO) build -o $(BUILD)/cache-stnsd -buildvcs=false -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION) -s -w"
 
 .PHONY: install
 install: build ## Install
@@ -93,7 +93,7 @@ rpm: source_for_rpm ## Packaging for RPM
 
 .PHONY: pkg
 
-SUPPORTOS=centos7 centos8 ubuntu16 ubuntu18 ubuntu20 debian8 debian9 debian10 debian11
+SUPPORTOS=centos7 centos8 ubuntu18 ubuntu20 ubuntu22 debian10 debian11
 pkg: ## Create some distribution packages
 	rm -rf builds && mkdir builds
 	for i in $(SUPPORTOS); do \
