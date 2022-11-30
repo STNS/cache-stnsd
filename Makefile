@@ -93,7 +93,7 @@ rpm: source_for_rpm ## Packaging for RPM
 
 .PHONY: pkg
 
-SUPPORTOS=centos7 centos8 ubuntu18 ubuntu20 ubuntu22 debian10 debian11
+SUPPORTOS=centos7 centos8 almalinux9 ubuntu18 ubuntu20 ubuntu22 debian10 debian11
 pkg: ## Create some distribution packages
 	rm -rf builds && mkdir builds
 	for i in $(SUPPORTOS); do \

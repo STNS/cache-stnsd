@@ -1,0 +1,25 @@
+FROM almalinux:9
+
+
+ARG GO_VERSION
+RUN dnf install -y epel-release rpmdevtools make clang glibc gcc
+ENV FILE go$GO_VERSION.linux-amd64.tar.gz
+ENV URL https://storage.googleapis.com/golang/$FILE
+
+ENV GOPATH /go
+ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
+RUN ln -s /usr/local/go/bin/go /bin/go
+
+RUN set -eux &&\
+  dnf -y install git &&\
+  dnf -y clean all &&\
+  curl -OL $URL &&\
+	tar -C /usr/local -xzf $FILE &&\
+	rm $FILE &&\
+  mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
+
+ADD . /go/src/github.com/STNS/cache-stnsd
+WORKDIR /go/src/github.com/STNS/cache-stnsd
+
+RUN mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+RUN sed -i "s;%_build_name_fmt.*;%_build_name_fmt\t%%{ARCH}/%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.el9.rpm;" /usr/lib/rpm/macros
