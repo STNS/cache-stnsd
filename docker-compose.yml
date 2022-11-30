@@ -1,5 +1,18 @@
 version: '3'
 services:
+  cache_almalinux9:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.almalinux-9
+      args:
+        GO_VERSION: 1.18.2
+    volumes:
+      - .:/go/src/github.com/STNS/cache-stnsd
+      - ~/pkg:/go/pkg
+      - ~/src:/go/src
+    environment:
+      DIST: el9
+    command: make rpm
   cache_centos8:
     build:
       context: .
