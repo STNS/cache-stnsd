@@ -1,7 +1,7 @@
 on:
   push:
-    #    tags:
-    #      - 'v*'
+    tags:
+      - 'v*'
 env:
     COMPOSE_FILE: docker-compose.yaml
 name: Release
