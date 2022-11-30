@@ -3,7 +3,7 @@ module github.com/STNS/cache-stnsd
 go 1.17
 
 require (
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v1.2.1
 	github.com/ReneKroon/ttlcache/v2 v2.1.0
 	github.com/STNS/STNS/v2 v2.2.8
 	github.com/STNS/libstns-go v0.4.0
