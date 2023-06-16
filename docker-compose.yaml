@@ -13,19 +13,6 @@ services:
     environment:
       DIST: el9
     command: make rpm
-  cache_centos8:
-    build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.centos-8
-      args:
-        GO_VERSION: 1.18.2
-    volumes:
-      - .:/go/src/github.com/STNS/cache-stnsd
-      - ~/pkg:/go/pkg
-      - ~/src:/go/src
-    environment:
-      DIST: el8
-    command: make rpm
   cache_centos7:
     build:
       context: .
@@ -39,19 +26,6 @@ services:
     environment:
       DIST: el7
     command: make rpm
-  cache_ubuntu18:
-    build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.ubuntu-18
-      args:
-        GO_VERSION: 1.18.2
-    volumes:
-      - .:/go/src/github.com/STNS/cache-stnsd
-      - ~/pkg:/go/pkg
-      - ~/src:/go/src
-    environment:
-      DIST: bionic
-    command: make deb
   cache_ubuntu20:
     build:
       context: .
@@ -77,19 +51,6 @@ services:
       - ~/src:/go/src
     environment:
       DIST: jammy
-    command: make deb
-  cache_debian8:
-    build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.debian-8
-      args:
-        GO_VERSION: 1.18.2
-    volumes:
-      - .:/go/src/github.com/STNS/cache-stnsd
-      - ~/pkg:/go/pkg
-      - ~/src:/go/src
-    environment:
-      DIST: jessie
     command: make deb
   cache_debian10:
     build:

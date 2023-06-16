@@ -6,7 +6,6 @@ BOLD=\033[1m
 TEST ?= $(shell go list ./... | grep -v -e vendor -e keys -e tmp)
 
 GOVERSION=$(shell go version)
-GO ?= GO111MODULE=on go
 
 TESTCONFIG="misc/test.conf"
 
@@ -18,13 +17,18 @@ BUILD=tmp/bin
 UNAME_S := $(shell uname -s)
 .DEFAULT_GOAL := build
 
+GOPATH ?= /go
+GOOS=linux
+GOARCH=amd64
+GO=GO111MODULE=on GOOS=$(GOOS) GOARCH=$(GOARCH) go
+
 .PHONY: build
 ## build: build the nke
 build:
 	$(GO) build -o $(BUILD)/cache-stnsd -buildvcs=false -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION) -s -w"
 
 .PHONY: install
-install: build ## Install
+install: ## Install
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Installing as Server$(RESET)"
 	cp $(BUILD)/cache-stnsd $(BINDIR)/cache-stnsd
 
@@ -77,6 +81,8 @@ source_for_rpm: ## Create source for RPM
 	rm -rf tmp.$(DIST) cache-stnsd-$(VERSION).tar.gz
 	mkdir -p tmp.$(DIST)/cache-stnsd-$(VERSION)
 	cp -r $(SOURCES) tmp.$(DIST)/cache-stnsd-$(VERSION)
+	mkdir -p tmp.$(DIST)/cache-stnsd-$(VERSION)/tmp/bin
+	cp -r tmp/bin/* tmp.$(DIST)/cache-stnsd-$(VERSION)/tmp/bin
 	cd tmp.$(DIST) && \
 		tar cf cache-stnsd-$(VERSION).tar cache-stnsd-$(VERSION) && \
 		gzip -9 cache-stnsd-$(VERSION).tar
@@ -93,8 +99,8 @@ rpm: source_for_rpm ## Packaging for RPM
 
 .PHONY: pkg
 
-SUPPORTOS=centos7 centos8 almalinux9 ubuntu18 ubuntu20 ubuntu22 debian10 debian11
-pkg: ## Create some distribution packages
+SUPPORTOS=centos7 almalinux9 ubuntu20 ubuntu22 debian10 debian11
+pkg: build ## Create some distribution packages
 	rm -rf builds && mkdir builds
 	for i in $(SUPPORTOS); do \
 	  docker-compose build cache_$$i; \
@@ -108,6 +114,8 @@ source_for_deb: ## Create source for DEB
 	rm -rf tmp.$(DIST) cache-stnsd-$(VERSION).orig.tar.gz
 	mkdir -p tmp.$(DIST)/cache-stnsd-$(VERSION)
 	cp -r $(SOURCES) tmp.$(DIST)/cache-stnsd-$(VERSION)
+	mkdir -p tmp.$(DIST)/cache-stnsd-$(VERSION)/tmp/bin
+	cp -r tmp/bin/* tmp.$(DIST)/cache-stnsd-$(VERSION)/tmp/bin
 	cd tmp.$(DIST) && \
 	tar zcf cache-stnsd-$(VERSION).tar.gz cache-stnsd-$(VERSION)
 	mv tmp.$(DIST)/cache-stnsd-$(VERSION).tar.gz tmp.$(DIST)/cache-stnsd-$(VERSION).orig.tar.gz
