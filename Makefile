@@ -1,4 +1,4 @@
-VERSION = $(shell cat version)
+VERSION = $(git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
 INFO_COLOR=\033[1;34m
 RESET=\033[0m
