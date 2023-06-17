@@ -2,13 +2,14 @@
 
 start_server() {
   export CI=1
+  docker run --rm -p 18080:80 --name httpbin -d kennethreitz/httpbin
   make run &
   while ! test -e /tmp/cache-stnsd.sock > /dev/null 2>&1; do sleep 1; echo 'sleeping'; done;
 }
 
 stop_server() {
   PID=$(lsof /tmp/cache-stnsd.sock | tail -1 | awk '{print $2}')
-
+  docker rm -f httpbin
   kill -SIGINT $PID
   if [ $? -ne 0 ]; then
     echo "process not found"
