@@ -1,4 +1,4 @@
-VERSION = $(shell git describe --tags --abbrev=0|sed -e 's/v//g')
+VERSION = $(shell cat version)
 REVISION := $(shell git rev-parse --short HEAD)
 INFO_COLOR=\033[1;34m
 RESET=\033[0m
@@ -24,7 +24,7 @@ GO=GO111MODULE=on GOOS=$(GOOS) GOARCH=$(GOARCH) go
 
 .PHONY: build
 ## build: build the nke
-build:
+build: version
 	$(GO) build -o $(BUILD)/cache-stnsd -buildvcs=false -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION) -s -w"
 
 .PHONY: install
@@ -97,8 +97,11 @@ rpm: source_for_rpm ## Packaging for RPM
 	rpmbuild -ba rpm/cache-stnsd.spec
 	cp /root/rpmbuild/RPMS/*/*.rpm /go/src/github.com/STNS/cache-stnsd/builds
 
-.PHONY: pkg
+.PHONY: version
+version:
+	@git describe --tags --abbrev=0|sed -e 's/v//g' > version
 
+.PHONY: pkg
 SUPPORTOS=centos7 almalinux9 ubuntu20 ubuntu22 debian10 debian11
 pkg: build ## Create some distribution packages
 	rm -rf builds && mkdir builds
