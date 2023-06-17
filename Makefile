@@ -20,7 +20,7 @@ UNAME_S := $(shell uname -s)
 GOPATH ?= /go
 GOOS=linux
 GOARCH=amd64
-GO=GO111MODULE=on GOOS=$(GOOS) GOARCH=$(GOARCH) go
+GO=GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go
 
 .PHONY: build
 ## build: build the nke
@@ -60,7 +60,7 @@ goreleaser:
 test:
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Testing$(RESET)"
 	$(GO) test -v $(TEST) -timeout=30s -parallel=4
-	$(GO) test -race $(TEST)
+	CGO_ENABLED=1 go test -race $(TEST)
 
 .PHONY: run
 run: build
