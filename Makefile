@@ -106,8 +106,8 @@ SUPPORTOS=centos7 almalinux9 ubuntu20 ubuntu22 debian10 debian11
 pkg: build ## Create some distribution packages
 	rm -rf builds && mkdir builds
 	for i in $(SUPPORTOS); do \
-	  docker-compose build cache_$$i; \
-	  docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm cache_$$i; \
+	  docker-compose build cache_$$i || exit 1; \
+	  docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm cache_$$i || exit 1; \
 	done
 
 
