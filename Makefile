@@ -103,7 +103,7 @@ version:
 
 .PHONY: pkg
 SUPPORTOS=centos7 almalinux9 ubuntu20 ubuntu22 debian10 debian11
-pkg: build ## Create some distribution packages
+pkg: version build ## Create some distribution packages
 	rm -rf builds && mkdir builds
 	for i in $(SUPPORTOS); do \
 	  docker-compose build cache_$$i || exit 1; \
