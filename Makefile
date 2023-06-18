@@ -1,4 +1,4 @@
-VERSION = $(shell cat version)
+VERSION = $(shell git tag | sed 's/v//g' |sort --version-sort | tail -n1)
 REVISION := $(shell git rev-parse --short HEAD)
 INFO_COLOR=\033[1;34m
 RESET=\033[0m
@@ -12,7 +12,7 @@ TESTCONFIG="misc/test.conf"
 DIST ?= unknown
 PREFIX=/usr
 BINDIR=$(PREFIX)/sbin
-SOURCES=Makefile go.mod go.sum version cmd cache_stnsd main.go package/
+SOURCES=Makefile go.mod go.sum cmd cache_stnsd main.go package/
 BUILD=tmp/bin
 UNAME_S := $(shell uname -s)
 .DEFAULT_GOAL := build
@@ -24,7 +24,7 @@ GO=GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go
 
 .PHONY: build
 ## build: build the nke
-build: version
+build:
 	$(GO) build -o $(BUILD)/cache-stnsd -buildvcs=false -ldflags "-X github.com/STNS/cache-stnsd/cmd.version=$(VERSION) -s -w"
 
 .PHONY: install
@@ -40,7 +40,6 @@ release:
 .PHONY: bump
 bump:
 	git semv patch --bump
-	git tag | tail -n1 | sed 's/v//g' > version
 
 .PHONY: releasedeps
 releasedeps: git-semv goreleaser
@@ -97,14 +96,10 @@ rpm: source_for_rpm ## Packaging for RPM
 	rpmbuild -ba rpm/cache-stnsd.spec
 	cp /root/rpmbuild/RPMS/*/*.rpm /go/src/github.com/STNS/cache-stnsd/builds
 
-.PHONY: version
-version:
-	@git describe --tags --abbrev=0|sed -e 's/v//g' > version
-	@echo "current verson `cat version`"
 
 .PHONY: pkg
 SUPPORTOS=centos7 almalinux9 ubuntu20 ubuntu22 debian10 debian11
-pkg: version build ## Create some distribution packages
+pkg: build ## Create some distribution packages
 	rm -rf builds && mkdir builds
 	for i in $(SUPPORTOS); do \
 	  docker-compose build cache_$$i || exit 1; \
