@@ -100,6 +100,7 @@ rpm: source_for_rpm ## Packaging for RPM
 .PHONY: version
 version:
 	@git describe --tags --abbrev=0|sed -e 's/v//g' > version
+	@echo "current verson `cat version`"
 
 .PHONY: pkg
 SUPPORTOS=centos7 almalinux9 ubuntu20 ubuntu22 debian10 debian11
