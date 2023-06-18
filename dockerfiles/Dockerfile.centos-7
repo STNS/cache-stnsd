@@ -5,6 +5,7 @@ RUN yum install -y epel-release rpmdevtools make git
 
 COPY . /go/src/github.com/STNS/cache-stnsd
 WORKDIR /go/src/github.com/STNS/cache-stnsd
+RUN git config --global --add safe.directory `pwd`
 
 RUN mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 RUN sed -i "s;%_build_name_fmt.*;%_build_name_fmt\t%%{ARCH}/%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.el7.rpm;" /usr/lib/rpm/macros

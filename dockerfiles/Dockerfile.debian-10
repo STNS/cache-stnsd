@@ -7,3 +7,4 @@ RUN apt-get -qq update && \
 ENV USER root
 COPY . /go/src/github.com/STNS/cache-stnsd
 WORKDIR /go/src/github.com/STNS/cache-stnsd
+RUN git config --global --add safe.directory `pwd`
