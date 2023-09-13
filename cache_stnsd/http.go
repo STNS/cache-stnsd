@@ -33,6 +33,7 @@ func SetExpirationCallback(client *libstns.STNS, cache *ttlcache.Cache) {
 		func(key string, value interface{}) bool {
 			res, err := client.Request("status", "")
 			if err != nil {
+				logrus.Errorf("expiration callback http request error:%s", err.Error())
 				return false
 			}
 			return res.StatusCode == http.StatusOK
@@ -72,8 +73,8 @@ func (h *Http) Request(path, query string) (bool, *libstns.Response, error) {
 		return false, nil, err
 	}
 	if h.config.Cache {
-		body, found := h.cache.Get(cacheKey)
-		if found == nil {
+		body, err := h.cache.Get(cacheKey)
+		if err == nil {
 			switch v := body.(type) {
 			case libstns.Response:
 				logrus.Debugf("response from cache:%s", path)
@@ -81,7 +82,7 @@ func (h *Http) Request(path, query string) (bool, *libstns.Response, error) {
 			}
 		}
 	}
-
+	logrus.Infof("request to stns:%s", path)
 	res, err := h.client.Request(path, query)
 	if err != nil && res == nil {
 		logrus.Errorf("make http request error:%s", err.Error())
@@ -95,10 +96,12 @@ func (h *Http) Request(path, query string) (bool, *libstns.Response, error) {
 		}
 
 		return false, res, nil
-	default:
+	case http.StatusNotFound:
 		if h.config.Cache {
 			h.cache.SetWithTTL(cacheKey, *res, time.Duration(h.config.NegativeCacheTTL)*time.Second)
 		}
+		return false, res, nil
+	default:
 		return false, res, nil
 	}
 }
@@ -108,6 +111,7 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 	if err != nil && resp == nil {
 		return err
 	}
+	logrus.Infof("prefetch: request to stns:%s status:%d", resource, resp.StatusCode)
 	if resp.StatusCode == http.StatusOK {
 		userGroups := []model.UserGroup{}
 
@@ -131,6 +135,7 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 			return fmt.Errorf("unknown type: %v", reflect.TypeOf(ug))
 		}
 
+		logrus.Infof("write cache for %s count:%d", resource, len(userGroups))
 		for _, val := range userGroups {
 			j, err := json.Marshal(val)
 			if err != nil {
@@ -167,13 +172,13 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 					Headers:    resp.Headers,
 				},
 			)
-
 		}
 	}
 	return nil
 }
 
 func (h *Http) PrefetchUserGroups() {
+	logrus.Info("start prefetch")
 	users := []*model.User{}
 	groups := []*model.Group{}
 
@@ -183,6 +188,7 @@ func (h *Http) PrefetchUserGroups() {
 	if err := h.prefetchUserOrGroup("groups", groups); err != nil {
 		logrus.Error(err)
 	}
+	logrus.Info("finish prefetch")
 
 }
 
