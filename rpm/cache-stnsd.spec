@@ -1,6 +1,6 @@
 Summary: Caching response from stns server.
 Name:             cache-stnsd
-Version:          0.3.13
+Version:          0.3.14
 Release:          1
 License:          GPLv3
 URL:              https://github.com/STNS/cache-stnsd
@@ -75,6 +75,8 @@ fi
 %endif
 
 %changelog
+* Wed Sep 14 2023 pyama86 <www.kazu.com@gmail.com> - 0.3.14-1
+- save negative cache only 404 responses
 * Thu Mar 17 2022 pyama86 <www.kazu.com@gmail.com> - 0.3.13-1
 - support disable keepalive
 * Mon May 10 2021 pyama86 <www.kazu.com@gmail.com> - 0.3.12-1

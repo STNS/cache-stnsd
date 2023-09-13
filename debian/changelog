@@ -1,3 +1,8 @@
+cache-stnsd (0.3.14-1) jammy; urgency=medium
+  * save negative cache only 404 responses
+
+ -- pyama86 <www.kazu.com@gmail.com> Wed, 14 Sep 2023 00:20:00 +0900
+
 cache-stnsd (0.3.13-1) xenial; urgency=medium
   * support disable keepalive config
 
