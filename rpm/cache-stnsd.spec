@@ -75,7 +75,7 @@ fi
 %endif
 
 %changelog
-* Thu Sep 1l 2023 pyama86 <www.kazu.com@gmail.com> - 0.3.15-1
+* Thu Sep 14 2023 pyama86 <www.kazu.com@gmail.com> - 0.3.15-1
 - prefetch default true
 - FIX response type is wrong
 * Wed Sep 14 2023 pyama86 <www.kazu.com@gmail.com> - 0.3.14-1
