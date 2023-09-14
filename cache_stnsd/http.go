@@ -22,12 +22,6 @@ type Http struct {
 	version string
 }
 
-type Response struct {
-	StatusCode int
-	Headers    map[string]string
-	Body       []byte
-}
-
 func SetExpirationCallback(client *libstns.STNS, cache *ttlcache.Cache) {
 	cache.SetCheckExpirationCallback(
 		func(key string, value interface{}) bool {
@@ -77,11 +71,12 @@ func (h *Http) Request(path, query string) (bool, *libstns.Response, error) {
 		if err == nil {
 			switch v := body.(type) {
 			case libstns.Response:
-				logrus.Debugf("response from cache:%s", path)
+				logrus.Debugf("response from cache:%s", cacheKey)
 				return true, &v, nil
 			}
 		}
 	}
+	logrus.Debugf("send request to stns:%s/%s cache:%s", path, query, cacheKey)
 	res, err := h.client.Request(path, query)
 	if err != nil && res == nil {
 		logrus.Errorf("make http request error:%s", err.Error())
@@ -118,6 +113,7 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 			return err
 		}
 
+		logrus.Debugf("prefetch: set cache key:%s", cacheKey)
 		h.cache.Set(cacheKey, *resp)
 
 		userGroups := []model.UserGroup{}
@@ -159,7 +155,7 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 
 			logrus.Debugf("prefetch: set cache key:%s", cacheKey)
 			h.cache.Set(cacheKey,
-				Response{
+				libstns.Response{
 					StatusCode: http.StatusOK,
 					Body:       j,
 					Headers:    resp.Headers,
@@ -173,7 +169,7 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 
 			logrus.Debugf("prefetch: set cache key:%s", cacheKey)
 			h.cache.Set(cacheKey,
-				Response{
+				libstns.Response{
 					StatusCode: http.StatusOK,
 					Body:       j,
 					Headers:    resp.Headers,
