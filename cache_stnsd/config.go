@@ -46,6 +46,7 @@ func defaultConfig(config *Config) {
 	config.RequestRetry = 3
 	config.RequestLocktime = 60
 	config.Cached.UnixSocket = "/var/run/stnsd.sock"
+	config.Cached.Prefetch = true
 }
 
 func LoadConfig(filePath string) (*Config, error) {
