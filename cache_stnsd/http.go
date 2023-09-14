@@ -83,7 +83,7 @@ func (h *Http) Request(path, query string) (bool, *libstns.Response, error) {
 		return false, nil, err
 	}
 
-	logrus.Infof("request to stns:%s%s status:%d", path, query, res.StatusCode)
+	logrus.Infof("request to stns:%s/%s status:%d", path, query, res.StatusCode)
 	switch res.StatusCode {
 	case http.StatusOK:
 		if h.config.Cache {
