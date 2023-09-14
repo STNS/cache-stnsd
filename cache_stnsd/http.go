@@ -82,13 +82,13 @@ func (h *Http) Request(path, query string) (bool, *libstns.Response, error) {
 			}
 		}
 	}
-	logrus.Infof("request to stns:%s", path)
 	res, err := h.client.Request(path, query)
 	if err != nil && res == nil {
 		logrus.Errorf("make http request error:%s", err.Error())
 		return false, nil, err
 	}
 
+	logrus.Infof("request to stns:%s%s status:%d", path, query, res.StatusCode)
 	switch res.StatusCode {
 	case http.StatusOK:
 		if h.config.Cache {
