@@ -113,6 +113,13 @@ func (h *Http) prefetchUserOrGroup(resource string, ug interface{}) error {
 	}
 	logrus.Infof("prefetch: request to stns:%s status:%d", resource, resp.StatusCode)
 	if resp.StatusCode == http.StatusOK {
+		cacheKey, err := h.cacheKey(resource, "")
+		if err != nil {
+			return err
+		}
+
+		h.cache.Set(cacheKey, *resp)
+
 		userGroups := []model.UserGroup{}
 
 		switch v := ug.(type) {
