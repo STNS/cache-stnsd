@@ -48,7 +48,7 @@ you can set runing config to /etc/stns/client/stns.conf.
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		if err := viper.Unmarshal(&config); err != nil {
+		if err := viper.Unmarshal(config); err != nil {
 			logrus.Fatal(err)
 		}
 
