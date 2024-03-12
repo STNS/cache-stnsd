@@ -24,7 +24,7 @@ nfpms:
     formats:
       - deb
       - rpm
-    bindir: /usr/bin
+    bindir: /usr/sbin
     contents:
       - src: ./package/cache-stnsd.service
         dst: /etc/systemd/system/cache-stnsd.service
