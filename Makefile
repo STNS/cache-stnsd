@@ -32,15 +32,16 @@ install: ## Install
 
 .PHONY: release
 ## release: release nke (tagging and exec goreleaser)
-release: goreleaser
-	goreleaser --rm-dist
+release:
+	curl -sfL https://goreleaser.com/static/run | bash
+
 
 .PHONY: bump
 bump:
 	git semv patch --bump
 
 .PHONY: releasedeps
-releasedeps: git-semv goreleaser
+releasedeps: git-semv 
 
 .PHONY: git-semv
 git-semv:
@@ -48,9 +49,6 @@ git-semv:
 	brew install git-semv
 
 
-.PHONY: goreleaser
-goreleaser:
-	test -e goreleaser > /dev/null || curl -sfL https://goreleaser.com/static/run | bash
 
 .PHONY: tidy
 tidy:
