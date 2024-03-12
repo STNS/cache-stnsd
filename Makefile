@@ -18,9 +18,7 @@ UNAME_S := $(shell uname -s)
 .DEFAULT_GOAL := build
 
 GOPATH ?= /go
-GOOS=linux
-GOARCH=amd64
-GO=GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go
+GO=CGO_ENABLED=0 go
 
 .PHONY: build
 ## build: build the nke
@@ -52,11 +50,15 @@ git-semv:
 
 .PHONY: goreleaser
 goreleaser:
-	brew install goreleaser/tap/goreleaser
-	brew install goreleaser
+	test -e goreleaser > /dev/null || curl -sfL https://goreleaser.com/static/run | bash
+
+.PHONY: tidy
+tidy:
+	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Tidying up$(RESET)"
+	$(GO) mod tidy
 
 .PHONY: test
-test:
+test: tidy
 	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Testing$(RESET)"
 	$(GO) test -v $(TEST) -timeout=30s -parallel=4
 	CGO_ENABLED=1 go test -race $(TEST)
@@ -73,69 +75,3 @@ integration: ## Run integration test after Server wakeup
 	./misc/server start
 	$(GO) test $(VERBOSE) -integration $(TEST) $(TEST_OPTIONS)
 	./misc/server stop || true
-
-.PHONY: source_for_rpm
-source_for_rpm: ## Create source for RPM
-	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Distributing$(RESET)"
-	rm -rf tmp.$(DIST) cache-stnsd-$(VERSION).tar.gz
-	mkdir -p tmp.$(DIST)/cache-stnsd-$(VERSION)
-	cp -r $(SOURCES) tmp.$(DIST)/cache-stnsd-$(VERSION)
-	mkdir -p tmp.$(DIST)/cache-stnsd-$(VERSION)/tmp/bin
-	cp -r tmp/bin/* tmp.$(DIST)/cache-stnsd-$(VERSION)/tmp/bin
-	cd tmp.$(DIST) && \
-		tar cf cache-stnsd-$(VERSION).tar cache-stnsd-$(VERSION) && \
-		gzip -9 cache-stnsd-$(VERSION).tar
-	cp tmp.$(DIST)/cache-stnsd-$(VERSION).tar.gz ./builds
-	rm -rf tmp.$(DIST)
-
-.PHONY: rpm
-rpm: source_for_rpm ## Packaging for RPM
-	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Packaging for RPM$(RESET)"
-	cp builds/cache-stnsd-$(VERSION).tar.gz /root/rpmbuild/SOURCES
-	spectool -g -R rpm/cache-stnsd.spec
-	rpmbuild -ba rpm/cache-stnsd.spec
-	cp /root/rpmbuild/RPMS/*/*.rpm /go/src/github.com/STNS/cache-stnsd/builds
-
-
-.PHONY: pkg
-SUPPORTOS=centos7 almalinux9 ubuntu20 ubuntu22 debian10 debian11
-pkg: build ## Create some distribution packages
-	rm -rf builds && mkdir builds
-	for i in $(SUPPORTOS); do \
-	  docker-compose build cache_$$i || exit 1; \
-	  docker-compose run -v `pwd`:/go/src/github.com/STNS/cache-stnsd -v ~/pkg:/go/pkg --rm cache_$$i || exit 1; \
-	done
-
-
-.PHONY: source_for_deb
-source_for_deb: ## Create source for DEB
-	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Distributing$(RESET)"
-	rm -rf tmp.$(DIST) cache-stnsd-$(VERSION).orig.tar.gz
-	mkdir -p tmp.$(DIST)/cache-stnsd-$(VERSION)
-	cp -r $(SOURCES) tmp.$(DIST)/cache-stnsd-$(VERSION)
-	mkdir -p tmp.$(DIST)/cache-stnsd-$(VERSION)/tmp/bin
-	cp -r tmp/bin/* tmp.$(DIST)/cache-stnsd-$(VERSION)/tmp/bin
-	cd tmp.$(DIST) && \
-	tar zcf cache-stnsd-$(VERSION).tar.gz cache-stnsd-$(VERSION)
-	mv tmp.$(DIST)/cache-stnsd-$(VERSION).tar.gz tmp.$(DIST)/cache-stnsd-$(VERSION).orig.tar.gz
-
-.PHONY: deb
-deb: source_for_deb ## Packaging for DEB
-	@echo "$(INFO_COLOR)==> $(RESET)$(BOLD)Packaging for DEB$(RESET)"
-	cd tmp.$(DIST) && \
-		tar xf cache-stnsd-$(VERSION).orig.tar.gz && \
-		cd cache-stnsd-$(VERSION) && \
-		dh_make --single --createorig -y && \
-		rm -rf debian/*.ex debian/*.EX debian/README.Debian && \
-		cp -r $(GOPATH)/src/github.com/STNS/cache-stnsd/debian/* debian/ && \
-		sed -i -e 's/xenial/$(DIST)/g' debian/changelog && \
-		debuild -uc -us
-	cd tmp.$(DIST) && \
-		find . -name "*.deb" | sed -e 's/\(\(.*cache-stnsd.*\).deb\)/mv \1 \2.$(DIST).deb/g' | sh && \
-		mkdir -p $(GOPATH)/src/github.com/STNS/cache-stnsd/builds && \
-		cp *.deb $(GOPATH)/src/github.com/STNS/cache-stnsd/builds
-	rm -rf tmp.$(DIST)
-
-.PHONY: github_release
-github_release: ## Create some distribution packages
-	ghr -u STNS --replace v$(VERSION) builds/
