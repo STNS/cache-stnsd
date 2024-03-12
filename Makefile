@@ -32,7 +32,7 @@ install: ## Install
 
 .PHONY: release
 ## release: release nke (tagging and exec goreleaser)
-release:
+release: goreleaser
 	goreleaser --rm-dist
 
 .PHONY: bump
