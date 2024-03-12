@@ -1,0 +1,40 @@
+builds:
+  - id: "cache-stnsd"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    binary: "cache-stnsd"
+    ldflags:
+      - -s -w -X github.com/stns/cache-stnsd/cmd.version={{.Version}}
+
+nfpms:
+  -
+    id: cache-stnsd-nfpms
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}-1_{{ .Arch }}"
+    builds:
+    - cache-stnsd
+    homepage: https://github.com/STNS/cache-stnsd
+    maintainer: pyama86 <www.kazu.com@gmail.com>
+    description: cache daemon for STNS
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    contents:
+      - src: ./package/cache-stnsd.service
+        dst: /etc/systemd/system/cache-stnsd.service
+        type: config
+      - src: ./package/cache-stnsd.logrotate
+        dst: /etc//logrotate.d/cache-stnsd
+        type: config
+    epoch: 1
+
+release:
+  github:
+    owner: STNS
+    name: cache-stnsd
