@@ -30,7 +30,7 @@ nfpms:
         dst: /etc/systemd/system/cache-stnsd.service
         type: config
       - src: ./package/cache-stnsd.logrotate
-        dst: /etc//logrotate.d/cache-stnsd
+        dst: /etc/logrotate.d/cache-stnsd
         type: config
     epoch: 1
 
