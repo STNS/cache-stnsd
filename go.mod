@@ -3,9 +3,9 @@ module github.com/STNS/cache-stnsd
 go 1.22.5
 
 require (
-	github.com/BurntSushi/toml v1.3.2
+	github.com/BurntSushi/toml v1.4.0
 	github.com/ReneKroon/ttlcache/v2 v2.11.0
-	github.com/STNS/STNS/v2 v2.2.12
+	github.com/STNS/STNS/v2 v2.2.15
 	github.com/STNS/libstns-go v0.4.2
 	github.com/facebookgo/pidfile v0.0.0-20150612191647-f242e2999868
 	github.com/k0kubun/pp v3.0.1+incompatible
@@ -44,11 +44,11 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.23.0 // indirect
+	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
-	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/redis.v5 v5.2.9 // indirect
