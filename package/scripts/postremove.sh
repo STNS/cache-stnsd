@@ -23,8 +23,6 @@ remove() {
         systemctl disable cache-stnsd ||:
         printf "\033[32m Stop the service\033[0m\n"
         systemctl stop cache-stnsd ||:
-        printf "\033[32m Mask the service\033[0m\n"
-        systemctl mask cache-stnsd ||:
     fi
 }
 
