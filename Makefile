@@ -41,7 +41,7 @@ bump:
 	git semv patch --bump
 
 .PHONY: releasedeps
-releasedeps: git-semv 
+releasedeps: git-semv
 
 .PHONY: git-semv
 git-semv:

@@ -32,6 +32,8 @@ nfpms:
       - src: ./package/cache-stnsd.logrotate
         dst: /etc/logrotate.d/cache-stnsd
         type: config
+    scripts:
+      postinstall: "package/scripts/postinstall.sh"
     epoch: 1
 
 release:
