@@ -5,7 +5,14 @@ systemd_version=0
 if ! command -V systemctl >/dev/null 2>&1; then
   use_systemctl="False"
 else
-    systemd_version=$(systemctl --version | head -1 | sed 's/systemd //g')
+  systemd_version=$(systemctl --version | head -1 | sed 's/systemd //g')
+fi
+
+action="$1"
+if  [ "$1" = "configure" ] && [ -z "$2" ]; then
+  action="install"
+elif [ "$1" = "configure" ] && [ -n "$2" ]; then
+  action="upgrade"
 fi
 
 upgrade() {
@@ -26,7 +33,6 @@ upgrade() {
         systemctl enable cache-stnsd ||:
         systemctl restart cache-stnsd ||:
     fi
-
 }
 
 case "$action" in

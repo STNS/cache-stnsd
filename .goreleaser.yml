@@ -34,6 +34,7 @@ nfpms:
         type: config
     scripts:
       postinstall: "package/scripts/postinstall.sh"
+      postremove: "package/scripts/postremove.sh"
     epoch: 1
 
 release:
