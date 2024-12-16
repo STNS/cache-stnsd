@@ -1,12 +1,13 @@
 module github.com/STNS/cache-stnsd
 
 go 1.22.5
+toolchain go1.23.4
 
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/ReneKroon/ttlcache/v2 v2.11.0
 	github.com/STNS/STNS/v2 v2.2.15
-	github.com/STNS/libstns-go v0.4.2
+	github.com/STNS/libstns-go v0.4.3
 	github.com/facebookgo/pidfile v0.0.0-20150612191647-f242e2999868
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/lib/pq v1.10.9

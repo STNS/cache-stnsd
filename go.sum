@@ -4,8 +4,8 @@ github.com/ReneKroon/ttlcache/v2 v2.11.0 h1:OvlcYFYi941SBN3v9dsDcC2N8vRxyHcCmJb3
 github.com/ReneKroon/ttlcache/v2 v2.11.0/go.mod h1:mBxvsNY+BT8qLLd6CuAJubbKo6r0jh3nb5et22bbfGY=
 github.com/STNS/STNS/v2 v2.2.15 h1:3OaWj6/tEfFGtuF2m8NRHXicB97BZNLxakhtj0ux6RQ=
 github.com/STNS/STNS/v2 v2.2.15/go.mod h1:d9PIYyos+qskMPekiA1HWYGvD6J9XzDIviDEzYtwHzs=
-github.com/STNS/libstns-go v0.4.2 h1:CMqXgQotvCGD5imY6IZb2mi+CVZepCNobf01+w/WE2E=
-github.com/STNS/libstns-go v0.4.2/go.mod h1:Tino1dGkON1cA59wqKkITRn4hvsaWWg0FAfU27maQDA=
+github.com/STNS/libstns-go v0.4.3 h1:sCJBOwyFvVMinJdOrwLSTa3buPtMyWm3oBbZNh86TMQ=
+github.com/STNS/libstns-go v0.4.3/go.mod h1:Nzp7w8knXavXOylyEW7tXjlYxgFbRi0N3i+ARQc4XjM=
 github.com/caarlos0/env v3.5.0+incompatible h1:Yy0UN8o9Wtr/jGHZDpCBLpNrzcFLLM2yixi/rBrKyJs=
 github.com/caarlos0/env v3.5.0+incompatible/go.mod h1:tdCsowwCzMLdkqRYDlHpZCp2UooDD3MspDBjZ2AD02Y=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
