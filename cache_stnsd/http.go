@@ -40,7 +40,7 @@ func NewHttp(config *Config, cache *ttlcache.Cache, version string) (*Http, erro
 		AuthToken:      config.AuthToken,
 		User:           config.User,
 		Password:       config.Password,
-		SkipSSLVerify:  config.SSLVerify,
+		SkipSSLVerify:  !config.SSLVerify,
 		HttpProxy:      config.HttpProxy,
 		HttpKeepalive:  config.HttpKeepalive,
 		RequestTimeout: config.RequestTimeout,
