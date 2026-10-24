@@ -44,7 +44,20 @@ func TestEnableCacheWhenServerDown(t *testing.T) {
 	}
 
 	time.Sleep(time.Second * 2)
-	if _, ok := c.Get(key); ok != nil {
-		t.Fatal("couldn't use cache when server down")
+	// 失効のチェックと TTL の延長はバックグラウンドの goroutine が
+	// 非同期に行うため、単発の Get だと延長が間に合っていない瞬間を
+	// 引いてしまうことがある（flaky）。サーバが落ちている間は失効
+	// しないはずなので、使える状態になるまでポーリングして確認する。
+	// 本当に失効してしまった場合はアイテムが戻らないため、タイム
+	// アウトで失敗する。
+	deadline := time.Now().Add(time.Second * 10)
+	for {
+		if _, ok := c.Get(key); ok == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("couldn't use cache when server down")
+		}
+		time.Sleep(time.Millisecond * 100)
 	}
 }
