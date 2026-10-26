@@ -2,8 +2,8 @@ github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
 github.com/ReneKroon/ttlcache/v2 v2.11.0 h1:OvlcYFYi941SBN3v9dsDcC2N8vRxyHcCmJb3Vl4QMoM=
 github.com/ReneKroon/ttlcache/v2 v2.11.0/go.mod h1:mBxvsNY+BT8qLLd6CuAJubbKo6r0jh3nb5et22bbfGY=
-github.com/STNS/STNS/v2 v2.2.18 h1:rhgYgvqUjZ24HTaIys6Ei9S9TTcw7331KIgV8CWxD8s=
-github.com/STNS/STNS/v2 v2.2.18/go.mod h1:qP4G6TTGpn73pvzlXox7znlDlwR3oXR9SnWTmzuP0cw=
+github.com/STNS/STNS/v2 v2.2.19 h1:v8nv755APLIUKQbNq5XFFR0nfJymcB7gy3BJ/VuyCWQ=
+github.com/STNS/STNS/v2 v2.2.19/go.mod h1:uCpl5YO+kYA7aZAOVbuMCzhp31YB4Ak+J/gXGeoB6CM=
 github.com/STNS/libstns-go v0.4.3 h1:sCJBOwyFvVMinJdOrwLSTa3buPtMyWm3oBbZNh86TMQ=
 github.com/STNS/libstns-go v0.4.3/go.mod h1:Nzp7w8knXavXOylyEW7tXjlYxgFbRi0N3i+ARQc4XjM=
 github.com/caarlos0/env v3.5.0+incompatible h1:Yy0UN8o9Wtr/jGHZDpCBLpNrzcFLLM2yixi/rBrKyJs=

@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/ReneKroon/ttlcache/v2 v2.11.0
-	github.com/STNS/STNS/v2 v2.2.18
+	github.com/STNS/STNS/v2 v2.2.19
 	github.com/STNS/libstns-go v0.4.3
 	github.com/facebookgo/pidfile v0.0.0-20150612191647-f242e2999868
 	github.com/k0kubun/pp v3.0.1+incompatible
